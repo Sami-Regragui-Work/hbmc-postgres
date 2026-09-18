@@ -1,0 +1,13 @@
+target/
+.git/
+.gitignore
+.idea/
+*.iml
+*.class
+*.jar
+.DS_Store
+node_modules/
+README.md
+.env
+*.log
+secrets/db_password.txt
