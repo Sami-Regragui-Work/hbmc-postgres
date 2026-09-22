@@ -1,9 +1,14 @@
 package org.hbmc;
 
+import org.hbmc.model.Room;
+import org.hbmc.model.User;
+import org.hbmc.model.enums.RoomType;
+
+import java.math.BigDecimal;
+
 public class Main {
     static void main() {
-        long valLong = 10;
-        int valInt = (int)valLong;
-        System.out.println(valInt);
+        new Room("101", RoomType.SINGLE, 1, new BigDecimal("500.00"));
+        System.out.println();
     }
 }
