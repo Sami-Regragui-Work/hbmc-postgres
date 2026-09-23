@@ -3,10 +3,9 @@ package org.hbmc.model;
 import org.jetbrains.annotations.NotNull;
 
 import java.math.BigDecimal;
-import java.util.UUID;
 
 public class Invoice {
-    private UUID id;
+    private int id;
     private final Payment payment;
     private final BigDecimal offTax;
     private final BigDecimal tax;
@@ -17,11 +16,11 @@ public class Invoice {
         this.tax = tax;
     }
 
-    public UUID getId() {
+    public int getId() {
         return id;
     }
 
-    public void setId(UUID id) {
+    public void setId(int id) {
         this.id = id;
     }
 

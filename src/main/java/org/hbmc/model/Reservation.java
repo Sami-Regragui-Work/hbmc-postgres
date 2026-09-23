@@ -9,10 +9,9 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Objects;
-import java.util.UUID;
 
 public class Reservation {
-    private UUID id;
+    private int id;
     private final Client client;
     private Room room;
     private String reservationCode;
@@ -39,11 +38,11 @@ public class Reservation {
         this.createdAt = LocalDateTime.now();
     }
 
-    public UUID getId() {
+    public int getId() {
         return id;
     }
 
-    public void setId(UUID id) {
+    public void setId(int id) {
         this.id = id;
     }
 

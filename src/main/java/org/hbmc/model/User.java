@@ -1,24 +1,25 @@
 package org.hbmc.model;
 
-import java.util.UUID;
 
 abstract public class User {
-    private UUID id;
+    private int id;
     private String fullName;
     private String email;
     private String passwordHash;
+    private String salt;
 
-    public User(String fullName, String email, String passwordHash) {
+    public User(String fullName, String email, String passwordHash, String salt) {
         this.fullName = fullName;
         this.email = email;
         this.passwordHash = passwordHash;
+        this.salt = salt;
     }
 
-    public UUID getId() {
+    public int getId() {
         return id;
     }
 
-    public void setId(UUID id) {
+    public void setId(int id) {
         this.id = id;
     }
 
@@ -44,6 +45,14 @@ abstract public class User {
 
     public void setPasswordHash(String passwordHash) {
         this.passwordHash = passwordHash;
+    }
+
+    public String getSalt() {
+        return salt;
+    }
+
+    public void setSalt(String salt) {
+        this.salt = salt;
     }
 
     abstract public String getRole();

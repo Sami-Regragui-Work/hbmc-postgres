@@ -4,29 +4,26 @@ import org.hbmc.model.enums.CancellationType;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 public class CanceledReservation {
-    private UUID id;
+    private int id;
     private final Reservation reservation;
     private final LocalDateTime canceledAt;
     private final BigDecimal refundAmount;
-    private final BigDecimal penalityAmount;
     private final CancellationType type;
 
-    public CanceledReservation(Reservation reservation, BigDecimal refundAmount, BigDecimal penalityAmount, CancellationType type) {
+    public CanceledReservation(Reservation reservation, BigDecimal refundAmount, CancellationType type) {
         this.reservation = reservation;
         this.canceledAt = LocalDateTime.now();
         this.refundAmount = refundAmount;
-        this.penalityAmount = penalityAmount;
         this.type = type;
     }
 
-    public UUID getId() {
+    public int getId() {
         return id;
     }
 
-    public void setId(UUID id) {
+    public void setId(int id) {
         this.id = id;
     }
 
@@ -40,10 +37,6 @@ public class CanceledReservation {
 
     public BigDecimal getRefundAmount() {
         return refundAmount;
-    }
-
-    public BigDecimal getPenalityAmount() {
-        return penalityAmount;
     }
 
     public CancellationType getType() {

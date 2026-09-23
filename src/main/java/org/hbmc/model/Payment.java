@@ -7,10 +7,9 @@ import org.jetbrains.annotations.NotNull;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Objects;
-import java.util.UUID;
 
 public class Payment {
-    private UUID id;
+    private int id;
     private final Reservation reservation;
     private final BigDecimal total;
     private final LocalDate paymentDate;
@@ -29,11 +28,11 @@ public class Payment {
         this.status = status;
     }
 
-    public UUID getId() {
+    public int getId() {
         return id;
     }
 
-    public void setId(UUID id) {
+    public void setId(int id) {
         this.id = id;
     }
 

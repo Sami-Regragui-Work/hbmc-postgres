@@ -4,10 +4,9 @@ import org.hbmc.model.enums.RoomStatus;
 import org.hbmc.model.enums.RoomType;
 
 import java.math.BigDecimal;
-import java.util.UUID;
 
 public class Room {
-    private UUID id;
+    private int id;
     private final String roomNumber;
     private RoomType type;
     private int capacity;
@@ -26,11 +25,11 @@ public class Room {
         this.status = status;
     }
 
-    public UUID getId() {
+    public int getId() {
         return id;
     }
 
-    public void setId(UUID id) {
+    public void setId(int id) {
         this.id = id;
     }
 
