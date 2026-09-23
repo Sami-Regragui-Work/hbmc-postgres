@@ -25,7 +25,9 @@ services:
       db:
         condition: service_healthy
     environment:
+      DB_URL_PREFIX: ${POSTGRES_URL_PREFIX}
       DB_URL: ${POSTGRES_URL_PREFIX}${POSTGRES_DB}
+      DB_NAME: ${POSTGRES_DB}
       DB_USER: ${POSTGRES_USER}
       DB_PASSWORD_FILE: /run/secrets/db_password
     secrets:

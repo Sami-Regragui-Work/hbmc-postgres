@@ -24,7 +24,7 @@ public class DatabaseConnection {
                 try (InputStream input = this.getClass().getClassLoader().getResourceAsStream("db.properties")) {
                     properties.load(input);
                 }
-                dbUrl = dbUrl != null ? dbUrl : properties.getProperty("db.url");
+                dbUrl = dbUrl != null ? dbUrl : properties.getProperty("db.urlPrefix") + properties.getProperty("db.name");
                 dbUser = dbUser != null ? dbUser : properties.getProperty("db.user");
                 dbPassword = dbPassword != null ? dbPassword : properties.getProperty("db.password");
             }

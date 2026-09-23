@@ -1,5 +1,5 @@
-db.url=jdbc:postgresql://localhost:5432/hbmc_db
+db.urlPrefix=jdbc:postgresql://localhost:5432/
+db.name=hbmc_db
 db.user=root
 db.password=
-db.driver=org.postgresql.Driver
 
