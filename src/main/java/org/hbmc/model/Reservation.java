@@ -102,9 +102,9 @@ public class Reservation {
         this.status = ReservationStatus.COMPLETED;
     }
 
-    public CanceledReservation markAsCanceled(BigDecimal refundAmount, BigDecimal penalityAmount, CancellationType type) {
+    public CanceledReservation markAsCanceled(BigDecimal refundAmount, CancellationType type) {
         this.status = ReservationStatus.CANCELLED;
-        return new CanceledReservation(this, refundAmount, penalityAmount, type);
+        return new CanceledReservation(this, refundAmount, type);
     }
 
     public LocalDateTime getCreatedAt() {

@@ -103,7 +103,6 @@ public class UserRepositoryJDBC implements UserRepository {
         }
     }
 
-
     @Override
     public Optional<User> findById(int id) {
         String sql = "SELECT * FROM users WHERE id = ?";

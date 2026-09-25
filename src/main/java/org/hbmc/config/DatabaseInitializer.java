@@ -16,6 +16,8 @@ public class DatabaseInitializer {
                 throw new RuntimeException("Failed to connect to database '" + config.name() + "': " + e.getMessage(), e);
             DatabaseInitializer.createDatabase(config);
         }
+
+        DatabaseInitializer.createTablesIfNotExist(config);
     }
 
     private static void createDatabase(DatabaseConfig.DbSettings config) {
