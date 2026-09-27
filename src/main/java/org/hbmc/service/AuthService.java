@@ -1,6 +1,7 @@
 package org.hbmc.service;
 
 import org.apache.commons.codec.digest.DigestUtils;
+import org.hbmc.exception.AuthenticationException;
 import org.hbmc.model.User;
 import org.hbmc.repository.UserRepository;
 
@@ -34,14 +35,14 @@ public class AuthService {
         return hashPassword(plainPasswordAttempt, storedSalt).equals(storedHash);
     }
 
-    public Optional<User> login(String email, String plainPassword) {
-        Optional<User> userOpt = userRepository.findByEmail(email);
-        if (userOpt.isEmpty()) {
-            return Optional.empty();
+    public User login(String email, String plainPassword) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new AuthenticationException("Invalid email or password"));
+
+        if (!verifyPassword(plainPassword, user.getSalt(), user.getPasswordHash())) {
+            throw new AuthenticationException("Invalid email or password");
         }
-        User user = userOpt.get();
-        boolean valid = verifyPassword(plainPassword, user.getSalt(), user.getPasswordHash());
-        return valid ? Optional.of(user) : Optional.empty();
+        return user;
     }
 
     public User register(User newUser, String plainPassword) {
@@ -57,5 +58,11 @@ public class AuthService {
 
     public Predicate<User> hasRole(String requiredRole) {
         return user -> user.getRole().equalsIgnoreCase(requiredRole);
+    }
+
+    public void assertRole(User user, String requiredRole) {
+        if (!hasRole(requiredRole).test(user)) {
+            throw new AuthenticationException("Access denied: requires role " + requiredRole);
+        }
     }
 }

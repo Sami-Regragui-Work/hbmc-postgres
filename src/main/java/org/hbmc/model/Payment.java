@@ -11,7 +11,7 @@ import java.util.Objects;
 public class Payment {
     private int id;
     private final Reservation reservation;
-    private final BigDecimal total;
+    private BigDecimal total;
     private final LocalDate paymentDate;
     private PaymentMethod method;
     private PaymentStatus status;
@@ -42,6 +42,10 @@ public class Payment {
 
     public BigDecimal getTotal() {
         return total;
+    }
+
+    public void setTotal(BigDecimal total) {
+        this.total = total;
     }
 
     public LocalDate getPaymentDate() {

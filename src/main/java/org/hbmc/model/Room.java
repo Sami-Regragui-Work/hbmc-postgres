@@ -4,6 +4,7 @@ import org.hbmc.model.enums.RoomStatus;
 import org.hbmc.model.enums.RoomType;
 
 import java.math.BigDecimal;
+import java.util.Objects;
 
 public class Room {
     private int id;
@@ -69,4 +70,15 @@ public class Room {
         this.status = status;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Room room)) return false;
+        return id == room.id;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
+    }
 }

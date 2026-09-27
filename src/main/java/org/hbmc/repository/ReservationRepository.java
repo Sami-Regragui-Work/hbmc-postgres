@@ -18,6 +18,7 @@ public interface ReservationRepository {
     List<Reservation> findByStatus(ReservationStatus status);
     List<Reservation> findAll();
     boolean hasOverlap(int roomId, LocalDate checkIn, LocalDate checkOut);
+    boolean hasOverlap(int roomId, LocalDate checkIn, LocalDate checkOut, int excludeReservationId);
     CanceledReservation saveCancellation(CanceledReservation canceledReservation);
     Optional<CanceledReservation> findCancellationByReservationId(int reservationId);
 }

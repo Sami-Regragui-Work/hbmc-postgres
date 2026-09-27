@@ -1,5 +1,6 @@
 package org.hbmc.service;
 
+import org.hbmc.exception.RoomNotAvailableException;
 import org.hbmc.model.Room;
 import org.hbmc.model.enums.RoomStatus;
 import org.hbmc.repository.RoomRepository;
@@ -58,5 +59,11 @@ public class RoomService {
             throw new IllegalArgumentException("Check-in date must be before check-out date");
         }
         return !roomRepository.hasOverlap(roomId, checkIn, checkOut);
+    }
+
+    public void assertRoomAvailable(int roomId, LocalDate checkIn, LocalDate checkOut) {
+        if (!isRoomAvailable(roomId, checkIn, checkOut)) {
+            throw new RoomNotAvailableException("Room " + roomId + " is not available from " + checkIn + " to " + checkOut);
+        }
     }
 }

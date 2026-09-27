@@ -10,6 +10,8 @@ import java.util.Optional;
 public interface PaymentRepository {
     Payment save(Payment payment);
     Payment save(Payment payment, Connection connection);
+    Payment update(Payment payment);
+    Payment update(Payment payment, Connection connection);
     Optional<Payment> findById(int id);
     Optional<Payment> findByReservationId(int reservationId);
     List<Payment> findByStatus(PaymentStatus status);

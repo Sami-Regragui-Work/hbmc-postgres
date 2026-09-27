@@ -7,8 +7,8 @@ import java.math.BigDecimal;
 public class Invoice {
     private int id;
     private final Payment payment;
-    private final BigDecimal offTax;
-    private final BigDecimal tax;
+    private BigDecimal offTax;
+    private BigDecimal tax;
 
     public Invoice(@NotNull Payment payment, BigDecimal offTax, BigDecimal tax) {
         this.payment = payment;
@@ -32,7 +32,15 @@ public class Invoice {
         return offTax;
     }
 
+    public void setOffTax(BigDecimal offTax) {
+        this.offTax = offTax;
+    }
+
     public BigDecimal getTax() {
         return tax;
+    }
+
+    public void setTax(BigDecimal tax) {
+        this.tax = tax;
     }
 }
