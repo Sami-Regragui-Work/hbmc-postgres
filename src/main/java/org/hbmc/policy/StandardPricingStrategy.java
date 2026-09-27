@@ -1,7 +1,5 @@
 package org.hbmc.policy;
 
-import org.hbmc.model.Reservation;
-
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.DayOfWeek;
@@ -20,10 +18,8 @@ public class StandardPricingStrategy implements PricingStrategy {
     private static final BigDecimal LAST_MINUTE_MULTIPLIER = new BigDecimal("1.10");     // <= 3 days ahead
 
     @Override
-    public BigDecimal calculatePrice(Reservation reservation) {
-        LocalDate checkIn = reservation.getCheckIn();
-        LocalDate checkOut = reservation.getCheckOut();
-        BigDecimal basePrice = reservation.getRoom().getPricePerNight();
+    public BigDecimal calculatePrice(org.hbmc.model.Room room, LocalDate checkIn, LocalDate checkOut) {
+        BigDecimal basePrice = room.getPricePerNight();
         long totalNights = ChronoUnit.DAYS.between(checkIn, checkOut);
 
         BigDecimal nightsTotal = BigDecimal.ZERO;

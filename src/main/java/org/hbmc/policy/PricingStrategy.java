@@ -1,9 +1,10 @@
 package org.hbmc.policy;
 
-import org.hbmc.model.Reservation;
+import org.hbmc.model.Room;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 
 public interface PricingStrategy {
-    BigDecimal calculatePrice(Reservation reservation);
+    BigDecimal calculatePrice(Room room, LocalDate checkIn, LocalDate checkOut);
 }
