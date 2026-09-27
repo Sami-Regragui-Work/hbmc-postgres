@@ -151,7 +151,7 @@ public class Main {
         }
     }
 
-    // ---------- CLIENT MENU ----------
+    // #############Client Menu
 
     private static void runClientMenu(Client client) {
         boolean loggedIn = true;
