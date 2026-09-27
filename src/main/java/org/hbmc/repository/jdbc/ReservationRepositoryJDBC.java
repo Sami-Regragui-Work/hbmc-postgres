@@ -217,6 +217,29 @@ public class ReservationRepositoryJDBC implements ReservationRepository {
     }
 
     @Override
+    public boolean hasOverlap(int roomId, LocalDate checkIn, LocalDate checkOut, int excludeReservationId) {
+        String sql = """
+        SELECT 1 FROM reservations
+        WHERE room_id = ?
+        AND id != ?
+        AND status != 'CANCELLED'
+        AND check_in < ?
+        AND check_out > ?
+    """;
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setInt(1, roomId);
+            stmt.setInt(2, excludeReservationId);
+            stmt.setDate(3, Date.valueOf(checkOut));
+            stmt.setDate(4, Date.valueOf(checkIn));
+            try (ResultSet rs = stmt.executeQuery()) {
+                return rs.next();
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to check reservation overlap: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
     public CanceledReservation saveCancellation(CanceledReservation canceledReservation) {
         String sql = """
             INSERT INTO canceled_reservations (reservation_id, canceled_at, refund_amount, type)
