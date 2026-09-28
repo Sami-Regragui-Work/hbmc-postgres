@@ -127,6 +127,12 @@ public class ReservationService {
         }
 
         BigDecimal newOffTax = this.pricingStrategy.calculatePrice(room, newCheckIn, newCheckOut);
+        BigDecimal newTax = this.calculateTax(newOffTax);
+
+        Payment payment = this.paymentRepository.findByReservationId(reservation.getId())
+                .orElseThrow(() -> new InvalidReservationException("No payment found for reservation: " + reservation.getId()));
+        Invoice invoice = this.invoiceRepository.findByPaymentId(payment.getId())
+                .orElseThrow(() -> new InvalidReservationException("No invoice found for payment: " + payment.getId()));
 
         try {
             this.connection.setAutoCommit(false);
@@ -136,14 +142,9 @@ public class ReservationService {
             reservation.setNumberOfGuests(newNumberOfGuests);
             this.reservationRepository.update(reservation);
 
-            Payment payment = this.paymentRepository.findByReservationId(reservation.getId())
-                    .orElseThrow(() -> new InvalidReservationException("No payment found for reservation: " + reservation.getId()));
             payment.setTotal(newOffTax);
-            Payment updatedPayment = this.paymentRepository.update(payment, this.connection);
+            this.paymentRepository.update(payment, this.connection);
 
-            BigDecimal newTax = this.calculateTax(newOffTax);
-            Invoice invoice = this.invoiceRepository.findByPaymentId(updatedPayment.getId())
-                    .orElseThrow(() -> new InvalidReservationException("No invoice found for payment: " + updatedPayment.getId()));
             invoice.setOffTax(newOffTax);
             invoice.setTax(newTax);
             this.invoiceRepository.update(invoice, this.connection);
