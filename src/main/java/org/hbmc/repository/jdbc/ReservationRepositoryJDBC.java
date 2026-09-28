@@ -10,22 +10,19 @@ import org.hbmc.model.enums.ReservationStatus;
 import org.hbmc.repository.ReservationRepository;
 import org.hbmc.repository.RowMapper;
 
-import java.sql.*;
 import java.time.LocalDate;
-
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 public class ReservationRepositoryJDBC implements ReservationRepository {
 
-    private final Connection connection;
+    private final JdbcHelper jdbcHelper;
     private final UserRepositoryJDBC userRepository;
     private final RoomRepositoryJDBC roomRepository;
     private final RowMapper<Reservation> reservationMapper;
 
     public ReservationRepositoryJDBC() {
-        this.connection = DatabaseConnection.getInstance().getConnection();
+        this.jdbcHelper = new JdbcHelper(DatabaseConnection.getInstance().getConnection());
         this.userRepository = new UserRepositoryJDBC();
         this.roomRepository = new RoomRepositoryJDBC();
 
@@ -60,27 +57,19 @@ public class ReservationRepositoryJDBC implements ReservationRepository {
                 (client_id, room_id, reservation_code, check_in, check_out, number_of_guests, status, created_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """;
-        try (PreparedStatement stmt = this.connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-            stmt.setInt(1, reservation.getClient().getId());
-            stmt.setInt(2, reservation.getRoom().getId());
-            stmt.setString(3, reservation.getReservationCode());
-            stmt.setDate(4, Date.valueOf(reservation.getCheckIn()));
-            stmt.setDate(5, Date.valueOf(reservation.getCheckOut()));
-            stmt.setInt(6, reservation.getNumberOfGuests());
-            stmt.setString(7, reservation.getStatus().name());
-            stmt.setTimestamp(8, Timestamp.valueOf(reservation.getCreatedAt()));
-
-            stmt.executeUpdate();
-
-            try (ResultSet keys = stmt.getGeneratedKeys()) {
-                if (keys.next()) {
-                    reservation.setId(keys.getInt(1));
-                }
-            }
-            return reservation;
-        } catch (SQLException e) {
-            throw new RuntimeException("Failed to save reservation: " + e.getMessage(), e);
-        }
+        int id = this.jdbcHelper.insertReturningId(
+                sql,
+                reservation.getClient().getId(),
+                reservation.getRoom().getId(),
+                reservation.getReservationCode(),
+                reservation.getCheckIn(),
+                reservation.getCheckOut(),
+                reservation.getNumberOfGuests(),
+                reservation.getStatus(),
+                reservation.getCreatedAt()
+        );
+        reservation.setId(id);
+        return reservation;
     }
 
     @Override
@@ -90,105 +79,55 @@ public class ReservationRepositoryJDBC implements ReservationRepository {
             SET room_id = ?, check_in = ?, check_out = ?, number_of_guests = ?, status = ?
             WHERE id = ?
         """;
-        try (PreparedStatement stmt = this.connection.prepareStatement(sql)) {
-            stmt.setInt(1, reservation.getRoom().getId());
-            stmt.setDate(2, Date.valueOf(reservation.getCheckIn()));
-            stmt.setDate(3, Date.valueOf(reservation.getCheckOut()));
-            stmt.setInt(4, reservation.getNumberOfGuests());
-            stmt.setString(5, reservation.getStatus().name());
-            stmt.setInt(6, reservation.getId());
-
-            int rowsAffected = stmt.executeUpdate();
-            if (rowsAffected == 0) {
-                throw new RuntimeException("No reservation found with id: " + reservation.getId());
-            }
-            return reservation;
-        } catch (SQLException e) {
-            throw new RuntimeException("Failed to update reservation: " + e.getMessage(), e);
+        int rowsAffected = this.jdbcHelper.update(
+                sql,
+                reservation.getRoom().getId(),
+                reservation.getCheckIn(),
+                reservation.getCheckOut(),
+                reservation.getNumberOfGuests(),
+                reservation.getStatus(),
+                reservation.getId()
+        );
+        if (rowsAffected == 0) {
+            throw new RuntimeException("No reservation found with id: " + reservation.getId());
         }
+        return reservation;
     }
 
     @Override
     public Optional<Reservation> findById(int id) {
         String sql = "SELECT * FROM reservations WHERE id = ?";
-        try (PreparedStatement stmt = this.connection.prepareStatement(sql)) {
-            stmt.setInt(1, id);
-            try (ResultSet rs = stmt.executeQuery()) {
-                return rs.next() ? Optional.of(this.reservationMapper.map(rs)) : Optional.empty();
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException("Failed to find reservation by id: " + e.getMessage(), e);
-        }
+        return this.jdbcHelper.queryOne(sql, this.reservationMapper, id);
     }
 
     @Override
     public Optional<Reservation> findByReservationCode(String code) {
         String sql = "SELECT * FROM reservations WHERE reservation_code = ?";
-        try (PreparedStatement stmt = this.connection.prepareStatement(sql)) {
-            stmt.setString(1, code);
-            try (ResultSet rs = stmt.executeQuery()) {
-                return rs.next() ? Optional.of(this.reservationMapper.map(rs)) : Optional.empty();
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException("Failed to find reservation by code: " + e.getMessage(), e);
-        }
+        return this.jdbcHelper.queryOne(sql, this.reservationMapper, code);
     }
 
     @Override
     public List<Reservation> findByClientId(int clientId) {
-        return this.queryList("SELECT * FROM reservations WHERE client_id = ?", clientId);
+        String sql = "SELECT * FROM reservations WHERE client_id = ?";
+        return this.jdbcHelper.queryList(sql, this.reservationMapper, clientId);
     }
 
     @Override
     public List<Reservation> findByRoomId(int roomId) {
-        return this.queryList("SELECT * FROM reservations WHERE room_id = ?", roomId);
-    }
-
-    private List<Reservation> queryList(String sql, int param) {
-        List<Reservation> reservations = new ArrayList<>();
-        try (PreparedStatement stmt = this.connection.prepareStatement(sql)) {
-            stmt.setInt(1, param);
-            try (ResultSet rs = stmt.executeQuery()) {
-                while (rs.next()) {
-                    reservations.add(this.reservationMapper.map(rs));
-                }
-            }
-            return reservations;
-        } catch (SQLException e) {
-            throw new RuntimeException("Failed to query reservations: " + e.getMessage(), e);
-        }
+        String sql = "SELECT * FROM reservations WHERE room_id = ?";
+        return this.jdbcHelper.queryList(sql, this.reservationMapper, roomId);
     }
 
     @Override
     public List<Reservation> findByStatus(ReservationStatus status) {
         String sql = "SELECT * FROM reservations WHERE status = ?";
-        List<Reservation> reservations = new ArrayList<>();
-        try (PreparedStatement stmt = this.connection.prepareStatement(sql)) {
-            stmt.setString(1, status.name());
-            try (ResultSet rs = stmt.executeQuery()) {
-                while (rs.next()) {
-                    reservations.add(this.reservationMapper.map(rs));
-                }
-            }
-            return reservations;
-        } catch (SQLException e) {
-            throw new RuntimeException("Failed to find reservations by status: " + e.getMessage(), e);
-        }
+        return this.jdbcHelper.queryList(sql, this.reservationMapper, status);
     }
 
     @Override
     public List<Reservation> findAll() {
         String sql = "SELECT * FROM reservations";
-        List<Reservation> reservations = new ArrayList<>();
-        try (PreparedStatement stmt = this.connection.prepareStatement(sql);
-             ResultSet rs = stmt.executeQuery()) {
-            while (rs.next()) {
-                reservations.add(this.reservationMapper.map(rs));
-            }
-            return reservations;
-        } catch (SQLException e) {
-            throw new RuntimeException("Failed to fetch all reservations: " + e.getMessage(), e);
-        }
+        return this.jdbcHelper.queryList(sql, this.reservationMapper);
     }
 
     @Override
@@ -200,16 +139,7 @@ public class ReservationRepositoryJDBC implements ReservationRepository {
             AND check_in < ?
             AND check_out > ?
         """;
-        try (PreparedStatement stmt = this.connection.prepareStatement(sql)) {
-            stmt.setInt(1, roomId);
-            stmt.setDate(2, Date.valueOf(checkOut));
-            stmt.setDate(3, Date.valueOf(checkIn));
-            try (ResultSet rs = stmt.executeQuery()) {
-                return rs.next();
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException("Failed to check reservation overlap: " + e.getMessage(), e);
-        }
+        return this.jdbcHelper.exists(sql, roomId, checkOut, checkIn);
     }
 
     @Override
@@ -222,17 +152,7 @@ public class ReservationRepositoryJDBC implements ReservationRepository {
         AND check_in < ?
         AND check_out > ?
     """;
-        try (PreparedStatement stmt = this.connection.prepareStatement(sql)) {
-            stmt.setInt(1, roomId);
-            stmt.setInt(2, excludeReservationId);
-            stmt.setDate(3, Date.valueOf(checkOut));
-            stmt.setDate(4, Date.valueOf(checkIn));
-            try (ResultSet rs = stmt.executeQuery()) {
-                return rs.next();
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException("Failed to check reservation overlap: " + e.getMessage(), e);
-        }
+        return this.jdbcHelper.exists(sql, roomId, excludeReservationId, checkOut, checkIn);
     }
 
     @Override
@@ -241,46 +161,30 @@ public class ReservationRepositoryJDBC implements ReservationRepository {
             INSERT INTO canceled_reservations (reservation_id, canceled_at, refund_amount, type)
             VALUES (?, ?, ?, ?)
         """;
-        try (PreparedStatement stmt = this.connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-            stmt.setInt(1, canceledReservation.getReservation().getId());
-            stmt.setTimestamp(2, Timestamp.valueOf(canceledReservation.getCanceledAt()));
-            stmt.setBigDecimal(3, canceledReservation.getRefundAmount());
-            stmt.setString(4, canceledReservation.getType().name());
-
-            stmt.executeUpdate();
-
-            try (ResultSet keys = stmt.getGeneratedKeys()) {
-                if (keys.next()) {
-                    canceledReservation.setId(keys.getInt(1));
-                }
-            }
-            return canceledReservation;
-        } catch (SQLException e) {
-            throw new RuntimeException("Failed to save cancellation: " + e.getMessage(), e);
-        }
+        int id = this.jdbcHelper.insertReturningId(
+                sql,
+                canceledReservation.getReservation().getId(),
+                canceledReservation.getCanceledAt(),
+                canceledReservation.getRefundAmount(),
+                canceledReservation.getType()
+        );
+        canceledReservation.setId(id);
+        return canceledReservation;
     }
 
     @Override
     public Optional<CanceledReservation> findCancellationByReservationId(int reservationId) {
         String sql = "SELECT * FROM canceled_reservations WHERE reservation_id = ?";
-        try (PreparedStatement stmt = this.connection.prepareStatement(sql)) {
-            stmt.setInt(1, reservationId);
-            try (ResultSet rs = stmt.executeQuery()) {
-                if (!rs.next()) {
-                    return Optional.empty();
-                }
-                Reservation reservation = this.findById(reservationId)
-                        .orElseThrow(() -> new RuntimeException("Reservation not found: " + reservationId));
-                CanceledReservation canceled = new CanceledReservation(
-                        reservation,
-                        rs.getBigDecimal("refund_amount"),
-                        CancellationType.valueOf(rs.getString("type"))
-                );
-                canceled.setId(rs.getInt("id"));
-                return Optional.of(canceled);
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException("Failed to find cancellation: " + e.getMessage(), e);
-        }
+        return this.jdbcHelper.queryOne(sql, rs -> {
+            Reservation reservation = this.findById(reservationId)
+                    .orElseThrow(() -> new RuntimeException("Reservation not found: " + reservationId));
+            CanceledReservation canceled = new CanceledReservation(
+                    reservation,
+                    rs.getBigDecimal("refund_amount"),
+                    CancellationType.valueOf(rs.getString("type"))
+            );
+            canceled.setId(rs.getInt("id"));
+            return canceled;
+        }, reservationId);
     }
 }
