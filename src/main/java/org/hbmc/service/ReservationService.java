@@ -70,44 +70,43 @@ public class ReservationService {
                     "Room " + room.getRoomNumber() + " capacity is " + room.getCapacity() + ", requested " + numberOfGuests
             );
         }
-        if (roomRepository.hasOverlap(room.getId(), checkIn, checkOut)) {
+        if (this.roomRepository.hasOverlap(room.getId(), checkIn, checkOut)) {
             throw new RoomNotAvailableException("Room " + room.getRoomNumber() + " is not available for the selected dates");
         }
 
-        String reservationCode = generateReservationCode();
+        String reservationCode = this.generateReservationCode();
         Reservation reservation = new Reservation(client, room, reservationCode, checkIn, checkOut, numberOfGuests);
-        BigDecimal totalWithTax = pricingStrategy.calculatePrice(room, checkIn, checkOut);
+        BigDecimal offTax = this.pricingStrategy.calculatePrice(room, checkIn, checkOut);
 
         try {
-            connection.setAutoCommit(false);
+            this.connection.setAutoCommit(false);
 
-            Reservation savedReservation = reservationRepository.save(reservation);
+            Reservation savedReservation = this.reservationRepository.save(reservation);
 
-            Payment payment = new Payment(savedReservation, totalWithTax, paymentMethod, PaymentStatus.COMPLETED);
-            Payment savedPayment = paymentRepository.save(payment, connection);
+            Payment payment = new Payment(savedReservation, offTax, paymentMethod, PaymentStatus.COMPLETED);
+            Payment savedPayment = this.paymentRepository.save(payment, this.connection);
 
-            BigDecimal offTax = totalWithTax.divide(BigDecimal.ONE.add(TVA_RATE), 2, RoundingMode.HALF_UP);
-            BigDecimal tax = totalWithTax.subtract(offTax);
+            BigDecimal tax = this.calculateTax(offTax);
             Invoice invoice = new Invoice(savedPayment, offTax, tax);
-            invoiceRepository.save(invoice, connection);
+            this.invoiceRepository.save(invoice, this.connection);
 
-            connection.commit();
+            this.connection.commit();
             return savedReservation;
 
         } catch (Exception e) {
             try {
-                connection.rollback();
+                this.connection.rollback();
             } catch (SQLException rollbackEx) {
                 throw new RuntimeException("Rollback failed after booking error: " + rollbackEx.getMessage(), rollbackEx);
             }
             throw new RuntimeException("Failed to book reservation, transaction rolled back: " + e.getMessage(), e);
         } finally {
-            resetAutoCommit();
+            this.resetAutoCommit();
         }
     }
 
     public Reservation updateReservation(Client client, String reservationCode, LocalDate newCheckIn, LocalDate newCheckOut, int newNumberOfGuests) {
-        Reservation reservation = getOwnedActiveReservation(client, reservationCode);
+        Reservation reservation = this.getOwnedActiveReservation(client, reservationCode);
 
         if (!newCheckIn.isBefore(newCheckOut)) {
             throw new InvalidReservationException("Check-in date must be before check-out date");
@@ -123,87 +122,90 @@ public class ReservationService {
                     "Room " + room.getRoomNumber() + " capacity is " + room.getCapacity() + ", requested " + newNumberOfGuests
             );
         }
-        if (reservationRepository.hasOverlap(room.getId(), newCheckIn, newCheckOut, reservation.getId())) {
+        if (this.reservationRepository.hasOverlap(room.getId(), newCheckIn, newCheckOut, reservation.getId())) {
             throw new RoomNotAvailableException("Room " + room.getRoomNumber() + " is not available for the selected dates");
         }
 
-        BigDecimal newTotalWithTax = pricingStrategy.calculatePrice(room, newCheckIn, newCheckOut);
+        BigDecimal newOffTax = this.pricingStrategy.calculatePrice(room, newCheckIn, newCheckOut);
 
         try {
-            connection.setAutoCommit(false);
+            this.connection.setAutoCommit(false);
 
             reservation.setCheckIn(newCheckIn);
             reservation.setCheckOut(newCheckOut);
             reservation.setNumberOfGuests(newNumberOfGuests);
-            reservationRepository.update(reservation);
+            this.reservationRepository.update(reservation);
 
-            Payment payment = paymentRepository.findByReservationId(reservation.getId())
+            Payment payment = this.paymentRepository.findByReservationId(reservation.getId())
                     .orElseThrow(() -> new InvalidReservationException("No payment found for reservation: " + reservation.getId()));
-            payment.setTotal(newTotalWithTax);
-            Payment updatedPayment = paymentRepository.update(payment, connection);
+            payment.setTotal(newOffTax);
+            Payment updatedPayment = this.paymentRepository.update(payment, this.connection);
 
-            BigDecimal offTax = newTotalWithTax.divide(BigDecimal.ONE.add(TVA_RATE), 2, RoundingMode.HALF_UP);
-            BigDecimal tax = newTotalWithTax.subtract(offTax);
-            Invoice invoice = invoiceRepository.findByPaymentId(updatedPayment.getId())
+            BigDecimal newTax = this.calculateTax(newOffTax);
+            Invoice invoice = this.invoiceRepository.findByPaymentId(updatedPayment.getId())
                     .orElseThrow(() -> new InvalidReservationException("No invoice found for payment: " + updatedPayment.getId()));
-            invoice.setOffTax(offTax);
-            invoice.setTax(tax);
-            invoiceRepository.update(invoice, connection);
+            invoice.setOffTax(newOffTax);
+            invoice.setTax(newTax);
+            this.invoiceRepository.update(invoice, this.connection);
 
-            connection.commit();
+            this.connection.commit();
             return reservation;
 
         } catch (Exception e) {
             try {
-                connection.rollback();
+                this.connection.rollback();
             } catch (SQLException rollbackEx) {
                 throw new RuntimeException("Rollback failed after update error: " + rollbackEx.getMessage(), rollbackEx);
             }
             throw new RuntimeException("Failed to update reservation, transaction rolled back: " + e.getMessage(), e);
         } finally {
-            resetAutoCommit();
+            this.resetAutoCommit();
         }
     }
 
     public List<Reservation> getReservationsForClient(Client client) {
-        return reservationRepository.findByClientId(client.getId()).stream()
+        return this.reservationRepository.findByClientId(client.getId()).stream()
                 .sorted(Comparator.comparing(Reservation::getCreatedAt).reversed())
                 .toList();
     }
 
-    public CanceledReservation cancelReservation(Client client, String reservationCode) {
-        Reservation reservation = getOwnedActiveReservation(client, reservationCode);
+    public List<Reservation> getAllReservations() {
+        return this.reservationRepository.findAll();
+    }
 
-        Payment payment = paymentRepository.findByReservationId(reservation.getId())
+    public CanceledReservation cancelReservation(Client client, String reservationCode) {
+        Reservation reservation = this.getOwnedActiveReservation(client, reservationCode);
+
+        Payment payment = this.paymentRepository.findByReservationId(reservation.getId())
                 .orElseThrow(() -> new InvalidReservationException("No payment found for reservation: " + reservation.getId()));
 
-        CancellationType type = refundPolicy.determineCancellationType(reservation.getCheckIn(), LocalDate.now());
-        BigDecimal refundAmount = refundPolicy.calculateRefund(payment.getTotal(), type);
+        CancellationType type = this.refundPolicy.determineCancellationType(reservation.getCheckIn(), LocalDate.now());
+        BigDecimal refundAmount = this.refundPolicy.calculateRefund(payment.getTotal(), type);
 
         try {
-            connection.setAutoCommit(false);
+            this.connection.setAutoCommit(false);
 
             CanceledReservation canceledReservation = reservation.markAsCanceled(refundAmount, type);
-            reservationRepository.update(reservation);
-            CanceledReservation saved = reservationRepository.saveCancellation(canceledReservation);
+            this.reservationRepository.update(reservation);
+            CanceledReservation saved = this.reservationRepository.saveCancellation(canceledReservation);
 
-            connection.commit();
+            this.connection.commit();
             return saved;
 
         } catch (Exception e) {
             try {
-                connection.rollback();
+                this.connection.rollback();
             } catch (SQLException rollbackEx) {
                 throw new RuntimeException("Rollback failed after cancellation error: " + rollbackEx.getMessage(), rollbackEx);
             }
             throw new RuntimeException("Failed to cancel reservation, transaction rolled back: " + e.getMessage(), e);
         } finally {
-            resetAutoCommit();
+            this.resetAutoCommit();
         }
     }
 
     private Reservation getOwnedActiveReservation(Client client, String reservationCode) {
-        Reservation reservation = reservationRepository.findByReservationCode(reservationCode)
+        Reservation reservation = this.reservationRepository.findByReservationCode(reservationCode)
                 .orElseThrow(() -> new ReservationNotFoundException("No reservation found with code: " + reservationCode));
 
         if (reservation.getClient().getId() != client.getId()) {
@@ -215,9 +217,14 @@ public class ReservationService {
         return reservation;
     }
 
+    // offTax is the strategy output (HT). tax holds only the TVA delta, TTC is derived as offTax + tax.
+    private BigDecimal calculateTax(BigDecimal offTax) {
+        return offTax.multiply(ReservationService.TVA_RATE).setScale(2, RoundingMode.HALF_UP);
+    }
+
     private void resetAutoCommit() {
         try {
-            connection.setAutoCommit(true);
+            this.connection.setAutoCommit(true);
         } catch (SQLException e) {
             throw new RuntimeException("Failed to reset autoCommit: " + e.getMessage(), e);
         }
@@ -225,15 +232,15 @@ public class ReservationService {
 
     private String generateReservationCode() {
         LocalDateTime timestamp = LocalDateTime.now();
-        String code = timestamp.format(RESERVATION_CODE_FORMAT);
+        String code = timestamp.format(ReservationService.RESERVATION_CODE_FORMAT);
 
-        if (code.equals(lastReservationCode)) {
-            timestamp = lastReservationTimestamp.plusNanos(10_000_000);
-            code = timestamp.format(RESERVATION_CODE_FORMAT);
+        if (code.equals(this.lastReservationCode)) {
+            timestamp = this.lastReservationTimestamp.plusNanos(10_000_000);
+            code = timestamp.format(ReservationService.RESERVATION_CODE_FORMAT);
         }
 
-        lastReservationCode = code;
-        lastReservationTimestamp = timestamp;
+        this.lastReservationCode = code;
+        this.lastReservationTimestamp = timestamp;
         return code;
     }
 }
