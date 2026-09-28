@@ -1,7 +1,10 @@
 package org.hbmc.config;
 
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
@@ -18,6 +21,7 @@ public class DatabaseInitializer {
         }
 
         DatabaseInitializer.createTablesIfNotExist(config);
+        DatabaseInitializer.seedIfEmpty(config);
     }
 
     private static void createDatabase(DatabaseConfig.DbSettings config) {
@@ -97,6 +101,62 @@ CREATE TABLE IF NOT EXISTS invoices (
 """);
             System.out.println("Tables verified/created successfully");
         } catch (Exception e) {
-            throw new RuntimeException("Failed to create tables: " + e.getMessage(), e);        }
+            throw new RuntimeException("Failed to create tables: " + e.getMessage(), e);
         }
+    }
+
+    private static void seedIfEmpty(DatabaseConfig.DbSettings config) {
+        try (Connection connection = DriverManager.getConnection(config.url(), config.user(), config.password())) {
+            DatabaseInitializer.seedAdminIfNoAdmin(connection);
+            DatabaseInitializer.seedRoomsIfNoRooms(connection);
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to seed data: " + e.getMessage(), e);
+        }
+    }
+
+    private static void seedAdminIfNoAdmin(Connection connection) throws SQLException {
+        if (DatabaseInitializer.countWhere(connection, "SELECT COUNT(*) FROM users WHERE role = 'ADMIN'") > 0) {
+            return;
+        }
+        String sql = "INSERT INTO users (full_name, email, password_hash, salt, role, phone) VALUES (?, ?, ?, ?, 'ADMIN', NULL)";
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setString(1, "Hotel Administrator");
+            stmt.setString(2, "admin@hbmc.com");
+            stmt.setString(3, "f6d5c46ffa4ab5b46d756a0b5503376ae1897d892be894b8ea896b4e63e66ea1");
+            stmt.setString(4, "hbmcAdminSalt");
+            stmt.executeUpdate();
+        }
+        System.out.println("Seeded admin account: admin@hbmc.com / Admin1234");
+    }
+
+    private static void seedRoomsIfNoRooms(Connection connection) throws SQLException {
+        if (DatabaseInitializer.countWhere(connection, "SELECT COUNT(*) FROM rooms") > 0) {
+            return;
+        }
+        String sql = "INSERT INTO rooms (room_number, type, capacity, price_per_night, status) VALUES (?, ?, ?, ?, ?)";
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            DatabaseInitializer.insertRoom(stmt, "101", "SINGLE", 1, "350.00", "AVAILABLE");
+            DatabaseInitializer.insertRoom(stmt, "102", "DOUBLE", 2, "500.00", "AVAILABLE");
+            DatabaseInitializer.insertRoom(stmt, "201", "SUITE", 4, "900.00", "AVAILABLE");
+            DatabaseInitializer.insertRoom(stmt, "202", "DOUBLE", 3, "650.00", "AVAILABLE");
+            DatabaseInitializer.insertRoom(stmt, "303", "SINGLE", 1, "300.00", "MAINTENANCE");
+        }
+        System.out.println("Seeded 5 demo rooms (303 is under maintenance)");
+    }
+
+    private static void insertRoom(PreparedStatement stmt, String roomNumber, String type, int capacity, String price, String status) throws SQLException {
+        stmt.setString(1, roomNumber);
+        stmt.setString(2, type);
+        stmt.setInt(3, capacity);
+        stmt.setBigDecimal(4, new BigDecimal(price));
+        stmt.setString(5, status);
+        stmt.executeUpdate();
+    }
+
+    private static long countWhere(Connection connection, String sql) throws SQLException {
+        try (PreparedStatement stmt = connection.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+            return rs.next() ? rs.getLong(1) : 0L;
+        }
+    }
 }
