@@ -6,6 +6,7 @@ import org.hbmc.dto.AvailableRoomDTO;
 import org.hbmc.dto.ReservationSummaryDTO;
 import org.hbmc.dto.RoomSearchCriteria;
 import org.hbmc.exception.AuthenticationException;
+import org.hbmc.exception.DataAccessException;
 import org.hbmc.exception.InvalidInputException;
 import org.hbmc.exception.InvalidReservationException;
 import org.hbmc.exception.ReservationAlreadyCancelledException;
@@ -279,7 +280,7 @@ public class Main {
             Reservation reservation = Main.reservationService.bookReservation(client, room, checkIn, checkOut, guests, method);
             System.out.println("Booked! Reservation code: " + reservation.getReservationCode());
         } catch (RoomNotAvailableException | RoomCapacityExceededException | InvalidReservationException
-                 | InvalidInputException e) {
+                 | InvalidInputException | DataAccessException e) {
             System.out.println("Booking failed: " + e.getMessage());
         }
     }

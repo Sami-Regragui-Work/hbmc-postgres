@@ -99,6 +99,11 @@ public class ReservationService {
             } catch (SQLException rollbackEx) {
                 throw new RuntimeException("Rollback failed after booking error: " + rollbackEx.getMessage(), rollbackEx);
             }
+            if (e instanceof DataAccessException dataAccessException) {
+                throw new DataAccessException(
+                        "Failed to book reservation, transaction rolled back: " + dataAccessException.getMessage(),
+                        dataAccessException);
+            }
             throw new RuntimeException("Failed to book reservation, transaction rolled back: " + e.getMessage(), e);
         } finally {
             this.resetAutoCommit();
