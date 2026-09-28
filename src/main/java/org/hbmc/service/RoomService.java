@@ -18,51 +18,51 @@ public class RoomService {
     }
 
     public Room createRoom(String roomNumber, org.hbmc.model.enums.RoomType type, int capacity, java.math.BigDecimal pricePerNight) {
-        if (roomRepository.findByRoomNumber(roomNumber).isPresent()) {
+        if (this.roomRepository.findByRoomNumber(roomNumber).isPresent()) {
             throw new IllegalArgumentException("Room number already exists: " + roomNumber);
         }
         Room room = new Room(roomNumber, type, capacity, pricePerNight);
-        return roomRepository.save(room);
+        return this.roomRepository.save(room);
     }
 
     public Room updateRoomStatus(int roomId, RoomStatus newStatus) {
-        Room room = roomRepository.findById(roomId)
+        Room room = this.roomRepository.findById(roomId)
                 .orElseThrow(() -> new IllegalArgumentException("Room not found: " + roomId));
         room.setStatus(newStatus);
-        return roomRepository.update(room);
+        return this.roomRepository.update(room);
     }
 
     public Room updateRoomPrice(int roomId, java.math.BigDecimal newPrice) {
-        Room room = roomRepository.findById(roomId)
+        Room room = this.roomRepository.findById(roomId)
                 .orElseThrow(() -> new IllegalArgumentException("Room not found: " + roomId));
         room.setPricePerNight(newPrice);
-        return roomRepository.update(room);
+        return this.roomRepository.update(room);
     }
 
     public Optional<Room> findById(int roomId) {
-        return roomRepository.findById(roomId);
+        return this.roomRepository.findById(roomId);
     }
 
     public List<Room> findAllRooms() {
-        return roomRepository.findAll();
+        return this.roomRepository.findAll();
     }
 
     public List<Room> findAvailableRooms(LocalDate checkIn, LocalDate checkOut) {
         if (!checkIn.isBefore(checkOut)) {
             throw new IllegalArgumentException("Check-in date must be before check-out date");
         }
-        return roomRepository.findAvailableRooms(checkIn, checkOut);
+        return this.roomRepository.findAvailableRooms(checkIn, checkOut);
     }
 
     public boolean isRoomAvailable(int roomId, LocalDate checkIn, LocalDate checkOut) {
         if (!checkIn.isBefore(checkOut)) {
             throw new IllegalArgumentException("Check-in date must be before check-out date");
         }
-        return !roomRepository.hasOverlap(roomId, checkIn, checkOut);
+        return !this.roomRepository.hasOverlap(roomId, checkIn, checkOut);
     }
 
     public void assertRoomAvailable(int roomId, LocalDate checkIn, LocalDate checkOut) {
-        if (!isRoomAvailable(roomId, checkIn, checkOut)) {
+        if (!this.isRoomAvailable(roomId, checkIn, checkOut)) {
             throw new RoomNotAvailableException("Room " + roomId + " is not available from " + checkIn + " to " + checkOut);
         }
     }

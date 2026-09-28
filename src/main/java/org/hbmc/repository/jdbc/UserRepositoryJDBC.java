@@ -46,7 +46,7 @@ public class UserRepositoryJDBC implements UserRepository {
     @Override
     public User save(User user) {
         String sql = "INSERT INTO users (full_name, email, password_hash, salt, role, phone) VALUES (?, ?, ?, ?, ?, ?)";
-        try (PreparedStatement stmt = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+        try (PreparedStatement stmt = this.connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             stmt.setString(1, user.getFullName());
             stmt.setString(2, user.getEmail());
             stmt.setString(3, user.getPasswordHash());
@@ -70,7 +70,7 @@ public class UserRepositoryJDBC implements UserRepository {
     @Override
     public User update(User user) {
         String sql = "UPDATE users SET full_name = ?, email = ?, phone = ? WHERE id = ?";
-        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+        try (PreparedStatement stmt = this.connection.prepareStatement(sql)) {
             stmt.setString(1, user.getFullName());
             stmt.setString(2, user.getEmail());
             stmt.setString(3, user instanceof Client client ? client.getPhone() : null);
@@ -89,7 +89,7 @@ public class UserRepositoryJDBC implements UserRepository {
     @Override
     public void updatePassword(int userId, String newPasswordHash, String newSalt) {
         String sql = "UPDATE users SET password_hash = ?, salt = ? WHERE id = ?";
-        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+        try (PreparedStatement stmt = this.connection.prepareStatement(sql)) {
             stmt.setString(1, newPasswordHash);
             stmt.setString(2, newSalt);
             stmt.setInt(3, userId);
@@ -106,11 +106,11 @@ public class UserRepositoryJDBC implements UserRepository {
     @Override
     public Optional<User> findById(int id) {
         String sql = "SELECT * FROM users WHERE id = ?";
-        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+        try (PreparedStatement stmt = this.connection.prepareStatement(sql)) {
             stmt.setInt(1, id);
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
-                    return Optional.of(userMapper.map(rs));
+                    return Optional.of(this.userMapper.map(rs));
                 }
                 return Optional.empty();
             }
@@ -122,11 +122,11 @@ public class UserRepositoryJDBC implements UserRepository {
     @Override
     public Optional<User> findByEmail(String email) {
         String sql = "SELECT * FROM users WHERE email = ?";
-        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+        try (PreparedStatement stmt = this.connection.prepareStatement(sql)) {
             stmt.setString(1, email);
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
-                    return Optional.of(userMapper.map(rs));
+                    return Optional.of(this.userMapper.map(rs));
                 }
                 return Optional.empty();
             }
@@ -138,7 +138,7 @@ public class UserRepositoryJDBC implements UserRepository {
     @Override
     public boolean existsByEmail(String email) {
         String sql = "SELECT 1 FROM users WHERE email = ?";
-        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+        try (PreparedStatement stmt = this.connection.prepareStatement(sql)) {
             stmt.setString(1, email);
             try (ResultSet rs = stmt.executeQuery()) {
                 return rs.next();
@@ -152,10 +152,10 @@ public class UserRepositoryJDBC implements UserRepository {
     public List<User> findAll() {
         String sql = "SELECT * FROM users";
         List<User> users = new ArrayList<>();
-        try (PreparedStatement stmt = connection.prepareStatement(sql);
+        try (PreparedStatement stmt = this.connection.prepareStatement(sql);
              ResultSet rs = stmt.executeQuery()) {
             while (rs.next()) {
-                users.add(userMapper.map(rs));
+                users.add(this.userMapper.map(rs));
             }
             return users;
         } catch (SQLException e) {

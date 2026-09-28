@@ -12,6 +12,6 @@ public class MoneyUtils {
     }
 
     public static BigDecimal calculateTotal(BigDecimal pricePerNight, long nights) {
-        return round(pricePerNight.multiply(BigDecimal.valueOf(nights)));
+        return MoneyUtils.round(pricePerNight.multiply(BigDecimal.valueOf(nights)));
     }
 }

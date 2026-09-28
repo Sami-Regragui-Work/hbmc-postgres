@@ -9,7 +9,7 @@ public class Client extends User {
     }
 
     public String getPhone() {
-        return phone;
+        return this.phone;
     }
 
     public void setPhone(String phone) {

@@ -15,14 +15,14 @@ public class InvoiceService {
     }
 
     public Optional<Invoice> findById(int id) {
-        return invoiceRepository.findById(id);
+        return this.invoiceRepository.findById(id);
     }
 
     public Optional<Invoice> findByPaymentId(int paymentId) {
-        return invoiceRepository.findByPaymentId(paymentId);
+        return this.invoiceRepository.findByPaymentId(paymentId);
     }
 
     public List<Invoice> findAll() {
-        return invoiceRepository.findAll();
+        return this.invoiceRepository.findAll();
     }
 }

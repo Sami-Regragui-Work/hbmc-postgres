@@ -39,7 +39,7 @@ public class Reservation {
     }
 
     public int getId() {
-        return id;
+        return this.id;
     }
 
     public void setId(int id) {
@@ -47,11 +47,11 @@ public class Reservation {
     }
 
     public Client getClient() {
-        return client;
+        return this.client;
     }
 
     public Room getRoom() {
-        return room;
+        return this.room;
     }
 
     public void setRoom(Room room) {
@@ -59,7 +59,7 @@ public class Reservation {
     }
 
     public String getReservationCode() {
-        return reservationCode;
+        return this.reservationCode;
     }
 
     public void setReservationCode(String reservationCode) {
@@ -67,7 +67,7 @@ public class Reservation {
     }
 
     public LocalDate getCheckIn() {
-        return checkIn;
+        return this.checkIn;
     }
 
     public void setCheckIn(LocalDate checkIn) {
@@ -75,7 +75,7 @@ public class Reservation {
     }
 
     public LocalDate getCheckOut() {
-        return checkOut;
+        return this.checkOut;
     }
 
     public void setCheckOut(LocalDate checkOut) {
@@ -83,7 +83,7 @@ public class Reservation {
     }
 
     public int getNumberOfGuests() {
-        return numberOfGuests;
+        return this.numberOfGuests;
     }
 
     public void setNumberOfGuests(int numberOfGuests) {
@@ -95,7 +95,7 @@ public class Reservation {
     }
 
     public ReservationStatus getStatus() {
-        return status;
+        return this.status;
     }
 
     public void markAsCompleted() {
@@ -108,6 +108,6 @@ public class Reservation {
     }
 
     public LocalDateTime getCreatedAt() {
-        return createdAt;
+        return this.createdAt;
     }
 }

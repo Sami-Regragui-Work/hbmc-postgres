@@ -27,7 +27,7 @@ public class Room {
     }
 
     public int getId() {
-        return id;
+        return this.id;
     }
 
     public void setId(int id) {
@@ -35,11 +35,11 @@ public class Room {
     }
 
     public String getRoomNumber() {
-        return roomNumber;
+        return this.roomNumber;
     }
 
     public RoomType getType() {
-        return type;
+        return this.type;
     }
 
     public void setType(RoomType type) {
@@ -47,7 +47,7 @@ public class Room {
     }
 
     public int getCapacity() {
-        return capacity;
+        return this.capacity;
     }
 
     public void setCapacity(int capacity) {
@@ -55,7 +55,7 @@ public class Room {
     }
 
     public BigDecimal getPricePerNight() {
-        return pricePerNight;
+        return this.pricePerNight;
     }
 
     public void setPricePerNight(BigDecimal pricePerNight) {
@@ -63,7 +63,7 @@ public class Room {
     }
 
     public RoomStatus getStatus() {
-        return status;
+        return this.status;
     }
 
     public void setStatus(RoomStatus status) {
@@ -74,11 +74,11 @@ public class Room {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof Room room)) return false;
-        return id == room.id;
+        return this.id == room.id;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id);
+        return Objects.hash(this.id);
     }
 }

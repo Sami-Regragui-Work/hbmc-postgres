@@ -36,7 +36,7 @@ public class RoomRepositoryJDBC implements RoomRepository {
     @Override
     public Room save(Room room) {
         String sql = "INSERT INTO rooms (room_number, type, capacity, price_per_night, status) VALUES (?, ?, ?, ?, ?)";
-        try (PreparedStatement stmt = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+        try (PreparedStatement stmt = this.connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             stmt.setString(1, room.getRoomNumber());
             stmt.setString(2, room.getType().name());
             stmt.setInt(3, room.getCapacity());
@@ -59,7 +59,7 @@ public class RoomRepositoryJDBC implements RoomRepository {
     @Override
     public Room update(Room room) {
         String sql = "UPDATE rooms SET type = ?, capacity = ?, price_per_night = ?, status = ? WHERE id = ?";
-        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+        try (PreparedStatement stmt = this.connection.prepareStatement(sql)) {
             stmt.setString(1, room.getType().name());
             stmt.setInt(2, room.getCapacity());
             stmt.setBigDecimal(3, room.getPricePerNight());
@@ -79,10 +79,10 @@ public class RoomRepositoryJDBC implements RoomRepository {
     @Override
     public Optional<Room> findById(int id) {
         String sql = "SELECT * FROM rooms WHERE id = ?";
-        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+        try (PreparedStatement stmt = this.connection.prepareStatement(sql)) {
             stmt.setInt(1, id);
             try (ResultSet rs = stmt.executeQuery()) {
-                return rs.next() ? Optional.of(roomMapper.map(rs)) : Optional.empty();
+                return rs.next() ? Optional.of(this.roomMapper.map(rs)) : Optional.empty();
             }
         } catch (SQLException e) {
             throw new RuntimeException("Failed to find room by id: " + e.getMessage(), e);
@@ -92,10 +92,10 @@ public class RoomRepositoryJDBC implements RoomRepository {
     @Override
     public Optional<Room> findByRoomNumber(String roomNumber) {
         String sql = "SELECT * FROM rooms WHERE room_number = ?";
-        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+        try (PreparedStatement stmt = this.connection.prepareStatement(sql)) {
             stmt.setString(1, roomNumber);
             try (ResultSet rs = stmt.executeQuery()) {
-                return rs.next() ? Optional.of(roomMapper.map(rs)) : Optional.empty();
+                return rs.next() ? Optional.of(this.roomMapper.map(rs)) : Optional.empty();
             }
         } catch (SQLException e) {
             throw new RuntimeException("Failed to find room by number: " + e.getMessage(), e);
@@ -106,10 +106,10 @@ public class RoomRepositoryJDBC implements RoomRepository {
     public List<Room> findAll() {
         String sql = "SELECT * FROM rooms";
         List<Room> rooms = new ArrayList<>();
-        try (PreparedStatement stmt = connection.prepareStatement(sql);
+        try (PreparedStatement stmt = this.connection.prepareStatement(sql);
              ResultSet rs = stmt.executeQuery()) {
             while (rs.next()) {
-                rooms.add(roomMapper.map(rs));
+                rooms.add(this.roomMapper.map(rs));
             }
             return rooms;
         } catch (SQLException e) {
@@ -121,11 +121,11 @@ public class RoomRepositoryJDBC implements RoomRepository {
     public List<Room> findByStatus(RoomStatus status) {
         String sql = "SELECT * FROM rooms WHERE status = ?";
         List<Room> rooms = new ArrayList<>();
-        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+        try (PreparedStatement stmt = this.connection.prepareStatement(sql)) {
             stmt.setString(1, status.name());
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
-                    rooms.add(roomMapper.map(rs));
+                    rooms.add(this.roomMapper.map(rs));
                 }
             }
             return rooms;
@@ -147,12 +147,12 @@ public class RoomRepositoryJDBC implements RoomRepository {
             )
         """;
         List<Room> rooms = new ArrayList<>();
-        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+        try (PreparedStatement stmt = this.connection.prepareStatement(sql)) {
             stmt.setDate(1, Date.valueOf(checkOut));
             stmt.setDate(2, Date.valueOf(checkIn));
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
-                    rooms.add(roomMapper.map(rs));
+                    rooms.add(this.roomMapper.map(rs));
                 }
             }
             return rooms;
@@ -170,7 +170,7 @@ public class RoomRepositoryJDBC implements RoomRepository {
             AND check_in < ?
             AND check_out > ?
         """;
-        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+        try (PreparedStatement stmt = this.connection.prepareStatement(sql)) {
             stmt.setInt(1, roomId);
             stmt.setDate(2, Date.valueOf(checkOut));
             stmt.setDate(3, Date.valueOf(checkIn));
@@ -185,7 +185,7 @@ public class RoomRepositoryJDBC implements RoomRepository {
     @Override
     public void delete(int id) {
         String sql = "DELETE FROM rooms WHERE id = ?";
-        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+        try (PreparedStatement stmt = this.connection.prepareStatement(sql)) {
             stmt.setInt(1, id);
             stmt.executeUpdate();
         } catch (SQLException e) {

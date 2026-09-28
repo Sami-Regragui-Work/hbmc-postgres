@@ -16,18 +16,18 @@ public class PaymentService {
     }
 
     public Optional<Payment> findById(int id) {
-        return paymentRepository.findById(id);
+        return this.paymentRepository.findById(id);
     }
 
     public Optional<Payment> findByReservationId(int reservationId) {
-        return paymentRepository.findByReservationId(reservationId);
+        return this.paymentRepository.findByReservationId(reservationId);
     }
 
     public List<Payment> findByStatus(PaymentStatus status) {
-        return paymentRepository.findByStatus(status);
+        return this.paymentRepository.findByStatus(status);
     }
 
     public List<Payment> findAll() {
-        return paymentRepository.findAll();
+        return this.paymentRepository.findAll();
     }
 }

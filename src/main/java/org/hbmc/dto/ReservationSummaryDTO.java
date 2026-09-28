@@ -27,30 +27,30 @@ public class ReservationSummaryDTO {
     }
 
     public int getReservationId() {
-        return reservationId;
+        return this.reservationId;
     }
 
     public String getReservationCode() {
-        return reservationCode;
+        return this.reservationCode;
     }
 
     public String getRoomNumber() {
-        return roomNumber;
+        return this.roomNumber;
     }
 
     public LocalDate getCheckIn() {
-        return checkIn;
+        return this.checkIn;
     }
 
     public LocalDate getCheckOut() {
-        return checkOut;
+        return this.checkOut;
     }
 
     public ReservationStatus getStatus() {
-        return status;
+        return this.status;
     }
 
     public BigDecimal getTotalPrice() {
-        return totalPrice;
+        return this.totalPrice;
     }
 }

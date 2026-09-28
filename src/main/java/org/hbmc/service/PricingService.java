@@ -16,11 +16,11 @@ public class PricingService {
     }
 
     public BigDecimal quotePrice(Room room, LocalDate checkIn, LocalDate checkOut) {
-        return pricingStrategy.calculatePrice(room, checkIn, checkOut);
+        return this.pricingStrategy.calculatePrice(room, checkIn, checkOut);
     }
 
     public AvailableRoomDTO quoteForRoom(Room room, LocalDate checkIn, LocalDate checkOut) {
-        BigDecimal price = quotePrice(room, checkIn, checkOut);
+        BigDecimal price = this.quotePrice(room, checkIn, checkOut);
         return new AvailableRoomDTO(room, price);
     }
 }

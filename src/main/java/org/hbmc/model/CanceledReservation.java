@@ -20,7 +20,7 @@ public class CanceledReservation {
     }
 
     public int getId() {
-        return id;
+        return this.id;
     }
 
     public void setId(int id) {
@@ -28,18 +28,18 @@ public class CanceledReservation {
     }
 
     public Reservation getReservation() {
-        return reservation;
+        return this.reservation;
     }
 
     public LocalDateTime getCanceledAt() {
-        return canceledAt;
+        return this.canceledAt;
     }
 
     public BigDecimal getRefundAmount() {
-        return refundAmount;
+        return this.refundAmount;
     }
 
     public CancellationType getType() {
-        return type;
+        return this.type;
     }
 }

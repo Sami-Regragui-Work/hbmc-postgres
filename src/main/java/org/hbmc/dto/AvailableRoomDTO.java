@@ -22,22 +22,22 @@ public class AvailableRoomDTO {
     }
 
     public int getRoomId() {
-        return roomId;
+        return this.roomId;
     }
 
     public String getRoomNumber() {
-        return roomNumber;
+        return this.roomNumber;
     }
 
     public RoomType getType() {
-        return type;
+        return this.type;
     }
 
     public int getCapacity() {
-        return capacity;
+        return this.capacity;
     }
 
     public BigDecimal getEstimatedTotalPrice() {
-        return estimatedTotalPrice;
+        return this.estimatedTotalPrice;
     }
 }

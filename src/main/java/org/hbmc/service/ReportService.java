@@ -11,10 +11,8 @@ import org.hbmc.repository.RoomRepository;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class ReportService {
@@ -30,13 +28,13 @@ public class ReportService {
     }
 
     public BigDecimal totalRevenue() {
-        return paymentRepository.findByStatus(PaymentStatus.COMPLETED).stream()
+        return this.paymentRepository.findByStatus(PaymentStatus.COMPLETED).stream()
                 .map(Payment::getTotal)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     public BigDecimal averageBookingValue() {
-        List<Payment> completedPayments = paymentRepository.findByStatus(PaymentStatus.COMPLETED);
+        List<Payment> completedPayments = this.paymentRepository.findByStatus(PaymentStatus.COMPLETED);
         if (completedPayments.isEmpty()) {
             return BigDecimal.ZERO;
         }
@@ -47,11 +45,11 @@ public class ReportService {
     }
 
     public BigDecimal occupancyRate() {
-        List<Room> allRooms = roomRepository.findAll();
+        List<Room> allRooms = this.roomRepository.findAll();
         if (allRooms.isEmpty()) {
             return BigDecimal.ZERO;
         }
-        long occupiedCount = reservationRepository.findByStatus(ReservationStatus.CONFIRMED).stream()
+        long occupiedCount = this.reservationRepository.findByStatus(ReservationStatus.CONFIRMED).stream()
                 .map(Reservation::getRoom)
                 .distinct()
                 .count();
@@ -62,7 +60,7 @@ public class ReportService {
     }
 
     public List<Map.Entry<Room, Long>> mostBookedRooms(int topN) {
-        List<Reservation> allReservations = reservationRepository.findAll();
+        List<Reservation> allReservations = this.reservationRepository.findAll();
 
         Map<Room, Long> bookingCounts = allReservations.stream()
                 .collect(Collectors.groupingBy(Reservation::getRoom, Collectors.counting()));
@@ -74,10 +72,10 @@ public class ReportService {
     }
 
     public long totalReservationsCount() {
-        return reservationRepository.findAll().size();
+        return this.reservationRepository.findAll().size();
     }
 
     public long cancelledReservationsCount() {
-        return reservationRepository.findByStatus(ReservationStatus.CANCELLED).size();
+        return this.reservationRepository.findByStatus(ReservationStatus.CANCELLED).size();
     }
 }

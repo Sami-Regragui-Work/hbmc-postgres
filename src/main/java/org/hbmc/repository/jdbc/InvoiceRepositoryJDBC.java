@@ -23,7 +23,7 @@ public class InvoiceRepositoryJDBC implements InvoiceRepository {
 
         this.invoiceMapper = rs -> {
             int paymentId = rs.getInt("payment_id");
-            Payment payment = paymentRepository.findById(paymentId)
+            Payment payment = this.paymentRepository.findById(paymentId)
                     .orElseThrow(() -> new RuntimeException("Referenced payment not found: " + paymentId));
 
             Invoice invoice = new Invoice(
@@ -38,7 +38,7 @@ public class InvoiceRepositoryJDBC implements InvoiceRepository {
 
     @Override
     public Invoice save(Invoice invoice) {
-        return save(invoice, connection);
+        return this.save(invoice, this.connection);
     }
 
     @Override
@@ -64,7 +64,7 @@ public class InvoiceRepositoryJDBC implements InvoiceRepository {
 
     @Override
     public Invoice update(Invoice invoice) {
-        return update(invoice, connection);
+        return this.update(invoice, this.connection);
     }
 
     @Override
@@ -88,10 +88,10 @@ public class InvoiceRepositoryJDBC implements InvoiceRepository {
     @Override
     public Optional<Invoice> findById(int id) {
         String sql = "SELECT * FROM invoices WHERE id = ?";
-        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+        try (PreparedStatement stmt = this.connection.prepareStatement(sql)) {
             stmt.setInt(1, id);
             try (ResultSet rs = stmt.executeQuery()) {
-                return rs.next() ? Optional.of(invoiceMapper.map(rs)) : Optional.empty();
+                return rs.next() ? Optional.of(this.invoiceMapper.map(rs)) : Optional.empty();
             }
         } catch (SQLException e) {
             throw new RuntimeException("Failed to find invoice by id: " + e.getMessage(), e);
@@ -101,10 +101,10 @@ public class InvoiceRepositoryJDBC implements InvoiceRepository {
     @Override
     public Optional<Invoice> findByPaymentId(int paymentId) {
         String sql = "SELECT * FROM invoices WHERE payment_id = ?";
-        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+        try (PreparedStatement stmt = this.connection.prepareStatement(sql)) {
             stmt.setInt(1, paymentId);
             try (ResultSet rs = stmt.executeQuery()) {
-                return rs.next() ? Optional.of(invoiceMapper.map(rs)) : Optional.empty();
+                return rs.next() ? Optional.of(this.invoiceMapper.map(rs)) : Optional.empty();
             }
         } catch (SQLException e) {
             throw new RuntimeException("Failed to find invoice by payment id: " + e.getMessage(), e);
@@ -115,10 +115,10 @@ public class InvoiceRepositoryJDBC implements InvoiceRepository {
     public List<Invoice> findAll() {
         String sql = "SELECT * FROM invoices";
         List<Invoice> invoices = new ArrayList<>();
-        try (PreparedStatement stmt = connection.prepareStatement(sql);
+        try (PreparedStatement stmt = this.connection.prepareStatement(sql);
              ResultSet rs = stmt.executeQuery()) {
             while (rs.next()) {
-                invoices.add(invoiceMapper.map(rs));
+                invoices.add(this.invoiceMapper.map(rs));
             }
             return invoices;
         } catch (SQLException e) {

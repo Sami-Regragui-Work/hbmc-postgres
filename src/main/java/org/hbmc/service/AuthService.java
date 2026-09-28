@@ -7,7 +7,6 @@ import org.hbmc.repository.UserRepository;
 
 import java.security.SecureRandom;
 import java.util.Base64;
-import java.util.Optional;
 import java.util.function.Predicate;
 
 public class AuthService {
@@ -22,8 +21,8 @@ public class AuthService {
     }
 
     public String generateSalt() {
-        byte[] saltBytes = new byte[SALT_LENGTH_BYTES];
-        secureRandom.nextBytes(saltBytes);
+        byte[] saltBytes = new byte[AuthService.SALT_LENGTH_BYTES];
+        this.secureRandom.nextBytes(saltBytes);
         return Base64.getEncoder().encodeToString(saltBytes);
     }
 
@@ -32,28 +31,28 @@ public class AuthService {
     }
 
     public boolean verifyPassword(String plainPasswordAttempt, String storedSalt, String storedHash) {
-        return hashPassword(plainPasswordAttempt, storedSalt).equals(storedHash);
+        return this.hashPassword(plainPasswordAttempt, storedSalt).equals(storedHash);
     }
 
     public User login(String email, String plainPassword) {
-        User user = userRepository.findByEmail(email)
+        User user = this.userRepository.findByEmail(email)
                 .orElseThrow(() -> new AuthenticationException("Invalid email or password"));
 
-        if (!verifyPassword(plainPassword, user.getSalt(), user.getPasswordHash())) {
+        if (!this.verifyPassword(plainPassword, user.getSalt(), user.getPasswordHash())) {
             throw new AuthenticationException("Invalid email or password");
         }
         return user;
     }
 
     public User register(User newUser, String plainPassword) {
-        if (userRepository.existsByEmail(newUser.getEmail())) {
+        if (this.userRepository.existsByEmail(newUser.getEmail())) {
             throw new IllegalArgumentException("Email already registered: " + newUser.getEmail());
         }
-        String salt = generateSalt();
-        String hash = hashPassword(plainPassword, salt);
+        String salt = this.generateSalt();
+        String hash = this.hashPassword(plainPassword, salt);
         newUser.setSalt(salt);
         newUser.setPasswordHash(hash);
-        return userRepository.save(newUser);
+        return this.userRepository.save(newUser);
     }
 
     public Predicate<User> hasRole(String requiredRole) {
@@ -61,7 +60,7 @@ public class AuthService {
     }
 
     public void assertRole(User user, String requiredRole) {
-        if (!hasRole(requiredRole).test(user)) {
+        if (!this.hasRole(requiredRole).test(user)) {
             throw new AuthenticationException("Access denied: requires role " + requiredRole);
         }
     }

@@ -14,19 +14,19 @@ public class ValidationUtils {
     }
 
     public static boolean isValidEmail(String email) {
-        return isNotBlank(email) && EMAIL_PATTERN.matcher(email).matches();
+        return ValidationUtils.isNotBlank(email) && ValidationUtils.EMAIL_PATTERN.matcher(email).matches();
     }
 
     public static boolean isValidPassword(String password) {
-        return isNotBlank(password) && password.length() >= 6;
+        return ValidationUtils.isNotBlank(password) && password.length() >= 6;
     }
 
     public static boolean isValidPhone(String phone) {
-        return isNotBlank(phone) && PHONE_PATTERN.matcher(phone).matches();
+        return ValidationUtils.isNotBlank(phone) && ValidationUtils.PHONE_PATTERN.matcher(phone).matches();
     }
 
     public static boolean isValidFullName(String fullName) {
-        return isNotBlank(fullName);
+        return ValidationUtils.isNotBlank(fullName);
     }
 
     public static void validatePositiveGuestCount(int numberOfGuests) {

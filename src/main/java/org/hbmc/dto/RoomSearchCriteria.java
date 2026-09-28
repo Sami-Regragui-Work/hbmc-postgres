@@ -19,15 +19,15 @@ public class RoomSearchCriteria {
     }
 
     public LocalDate getCheckIn() {
-        return checkIn;
+        return this.checkIn;
     }
 
     public LocalDate getCheckOut() {
-        return checkOut;
+        return this.checkOut;
     }
 
     public RoomType getType() {
-        return type;
+        return this.type;
     }
 
     public void setType(RoomType type) {
@@ -35,7 +35,7 @@ public class RoomSearchCriteria {
     }
 
     public Integer getMinCapacity() {
-        return minCapacity;
+        return this.minCapacity;
     }
 
     public void setMinCapacity(Integer minCapacity) {
@@ -43,7 +43,7 @@ public class RoomSearchCriteria {
     }
 
     public BigDecimal getMaxPricePerNight() {
-        return maxPricePerNight;
+        return this.maxPricePerNight;
     }
 
     public void setMaxPricePerNight(BigDecimal maxPricePerNight) {

@@ -1,5 +1,7 @@
 package org.hbmc.policy;
 
+import org.hbmc.model.Room;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.DayOfWeek;
@@ -18,17 +20,17 @@ public class StandardPricingStrategy implements PricingStrategy {
     private static final BigDecimal LAST_MINUTE_MULTIPLIER = new BigDecimal("1.10");     // <= 3 days ahead
 
     @Override
-    public BigDecimal calculatePrice(org.hbmc.model.Room room, LocalDate checkIn, LocalDate checkOut) {
+    public BigDecimal calculatePrice(Room room, LocalDate checkIn, LocalDate checkOut) {
         BigDecimal basePrice = room.getPricePerNight();
         long totalNights = ChronoUnit.DAYS.between(checkIn, checkOut);
 
         BigDecimal nightsTotal = BigDecimal.ZERO;
         for (LocalDate night = checkIn; night.isBefore(checkOut); night = night.plusDays(1)) {
-            nightsTotal = nightsTotal.add(calculateNightPrice(basePrice, night));
+            nightsTotal = nightsTotal.add(this.calculateNightPrice(basePrice, night));
         }
 
-        nightsTotal = applyLongStayDiscount(nightsTotal, totalNights);
-        nightsTotal = applyLeadTimeAdjustment(nightsTotal, checkIn);
+        nightsTotal = this.applyLongStayDiscount(nightsTotal, totalNights);
+        nightsTotal = this.applyLeadTimeAdjustment(nightsTotal, checkIn);
 
         return nightsTotal.setScale(2, RoundingMode.HALF_UP);
     }
@@ -38,14 +40,14 @@ public class StandardPricingStrategy implements PricingStrategy {
 
         Month month = night.getMonth();
         if (month == Month.JULY || month == Month.AUGUST) {
-            nightPrice = nightPrice.multiply(HIGH_SEASON_MULTIPLIER);
-        } else if (isLowSeason(month)) {
-            nightPrice = nightPrice.multiply(LOW_SEASON_MULTIPLIER);
+            nightPrice = nightPrice.multiply(StandardPricingStrategy.HIGH_SEASON_MULTIPLIER);
+        } else if (this.isLowSeason(month)) {
+            nightPrice = nightPrice.multiply(StandardPricingStrategy.LOW_SEASON_MULTIPLIER);
         }
 
         DayOfWeek dayOfWeek = night.getDayOfWeek();
         if (dayOfWeek == DayOfWeek.FRIDAY || dayOfWeek == DayOfWeek.SATURDAY) {
-            nightPrice = nightPrice.multiply(WEEKEND_MULTIPLIER);
+            nightPrice = nightPrice.multiply(StandardPricingStrategy.WEEKEND_MULTIPLIER);
         }
 
         return nightPrice;
@@ -53,9 +55,9 @@ public class StandardPricingStrategy implements PricingStrategy {
 
     private BigDecimal applyLongStayDiscount(BigDecimal nightsTotal, long totalNights) {
         if (totalNights >= 14) {
-            return nightsTotal.multiply(LONG_STAY_TIER2_MULTIPLIER);
+            return nightsTotal.multiply(StandardPricingStrategy.LONG_STAY_TIER2_MULTIPLIER);
         } else if (totalNights >= 7) {
-            return nightsTotal.multiply(LONG_STAY_TIER1_MULTIPLIER);
+            return nightsTotal.multiply(StandardPricingStrategy.LONG_STAY_TIER1_MULTIPLIER);
         }
         return nightsTotal;
     }
@@ -63,9 +65,9 @@ public class StandardPricingStrategy implements PricingStrategy {
     private BigDecimal applyLeadTimeAdjustment(BigDecimal nightsTotal, LocalDate checkIn) {
         long daysUntilCheckIn = ChronoUnit.DAYS.between(LocalDate.now(), checkIn);
         if (daysUntilCheckIn >= 30) {
-            return nightsTotal.multiply(EARLY_BOOKING_MULTIPLIER);
+            return nightsTotal.multiply(StandardPricingStrategy.EARLY_BOOKING_MULTIPLIER);
         } else if (daysUntilCheckIn <= 3) {
-            return nightsTotal.multiply(LAST_MINUTE_MULTIPLIER);
+            return nightsTotal.multiply(StandardPricingStrategy.LAST_MINUTE_MULTIPLIER);
         }
         return nightsTotal;
     }

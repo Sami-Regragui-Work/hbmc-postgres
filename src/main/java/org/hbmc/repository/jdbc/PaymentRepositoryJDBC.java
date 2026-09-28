@@ -25,7 +25,7 @@ public class PaymentRepositoryJDBC implements PaymentRepository {
 
         this.paymentMapper = rs -> {
             int reservationId = rs.getInt("reservation_id");
-            Reservation reservation = reservationRepository.findById(reservationId)
+            Reservation reservation = this.reservationRepository.findById(reservationId)
                     .orElseThrow(() -> new RuntimeException("Referenced reservation not found: " + reservationId));
 
             Payment payment = new Payment(
@@ -41,7 +41,7 @@ public class PaymentRepositoryJDBC implements PaymentRepository {
 
     @Override
     public Payment save(Payment payment) {
-        return save(payment, connection);
+        return this.save(payment, this.connection);
     }
 
     @Override
@@ -69,7 +69,7 @@ public class PaymentRepositoryJDBC implements PaymentRepository {
 
     @Override
     public Payment update(Payment payment) {
-        return update(payment, connection);
+        return this.update(payment, this.connection);
     }
 
     @Override
@@ -94,10 +94,10 @@ public class PaymentRepositoryJDBC implements PaymentRepository {
     @Override
     public Optional<Payment> findById(int id) {
         String sql = "SELECT * FROM payments WHERE id = ?";
-        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+        try (PreparedStatement stmt = this.connection.prepareStatement(sql)) {
             stmt.setInt(1, id);
             try (ResultSet rs = stmt.executeQuery()) {
-                return rs.next() ? Optional.of(paymentMapper.map(rs)) : Optional.empty();
+                return rs.next() ? Optional.of(this.paymentMapper.map(rs)) : Optional.empty();
             }
         } catch (SQLException e) {
             throw new RuntimeException("Failed to find payment by id: " + e.getMessage(), e);
@@ -107,10 +107,10 @@ public class PaymentRepositoryJDBC implements PaymentRepository {
     @Override
     public Optional<Payment> findByReservationId(int reservationId) {
         String sql = "SELECT * FROM payments WHERE reservation_id = ?";
-        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+        try (PreparedStatement stmt = this.connection.prepareStatement(sql)) {
             stmt.setInt(1, reservationId);
             try (ResultSet rs = stmt.executeQuery()) {
-                return rs.next() ? Optional.of(paymentMapper.map(rs)) : Optional.empty();
+                return rs.next() ? Optional.of(this.paymentMapper.map(rs)) : Optional.empty();
             }
         } catch (SQLException e) {
             throw new RuntimeException("Failed to find payment by reservation id: " + e.getMessage(), e);
@@ -121,11 +121,11 @@ public class PaymentRepositoryJDBC implements PaymentRepository {
     public List<Payment> findByStatus(PaymentStatus status) {
         String sql = "SELECT * FROM payments WHERE status = ?";
         List<Payment> payments = new ArrayList<>();
-        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+        try (PreparedStatement stmt = this.connection.prepareStatement(sql)) {
             stmt.setString(1, status.name());
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
-                    payments.add(paymentMapper.map(rs));
+                    payments.add(this.paymentMapper.map(rs));
                 }
             }
             return payments;
@@ -138,10 +138,10 @@ public class PaymentRepositoryJDBC implements PaymentRepository {
     public List<Payment> findAll() {
         String sql = "SELECT * FROM payments";
         List<Payment> payments = new ArrayList<>();
-        try (PreparedStatement stmt = connection.prepareStatement(sql);
+        try (PreparedStatement stmt = this.connection.prepareStatement(sql);
              ResultSet rs = stmt.executeQuery()) {
             while (rs.next()) {
-                payments.add(paymentMapper.map(rs));
+                payments.add(this.paymentMapper.map(rs));
             }
             return payments;
         } catch (SQLException e) {

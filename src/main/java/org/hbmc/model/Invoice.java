@@ -17,7 +17,7 @@ public class Invoice {
     }
 
     public int getId() {
-        return id;
+        return this.id;
     }
 
     public void setId(int id) {
@@ -25,11 +25,11 @@ public class Invoice {
     }
 
     public Payment getPayment() {
-        return payment;
+        return this.payment;
     }
 
     public BigDecimal getOffTax() {
-        return offTax;
+        return this.offTax;
     }
 
     public void setOffTax(BigDecimal offTax) {
@@ -37,7 +37,7 @@ public class Invoice {
     }
 
     public BigDecimal getTax() {
-        return tax;
+        return this.tax;
     }
 
     public void setTax(BigDecimal tax) {

@@ -16,7 +16,7 @@ abstract public class User {
     }
 
     public int getId() {
-        return id;
+        return this.id;
     }
 
     public void setId(int id) {
@@ -24,7 +24,7 @@ abstract public class User {
     }
 
     public String getFullName() {
-        return fullName;
+        return this.fullName;
     }
 
     public void setFullName(String fullName) {
@@ -32,7 +32,7 @@ abstract public class User {
     }
 
     public String getEmail() {
-        return email;
+        return this.email;
     }
 
     public void setEmail(String email) {
@@ -40,7 +40,7 @@ abstract public class User {
     }
 
     public String getPasswordHash() {
-        return passwordHash;
+        return this.passwordHash;
     }
 
     public void setPasswordHash(String passwordHash) {
@@ -48,7 +48,7 @@ abstract public class User {
     }
 
     public String getSalt() {
-        return salt;
+        return this.salt;
     }
 
     public void setSalt(String salt) {

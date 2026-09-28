@@ -29,7 +29,7 @@ public class Payment {
     }
 
     public int getId() {
-        return id;
+        return this.id;
     }
 
     public void setId(int id) {
@@ -37,11 +37,11 @@ public class Payment {
     }
 
     public Reservation getReservation() {
-        return reservation;
+        return this.reservation;
     }
 
     public BigDecimal getTotal() {
-        return total;
+        return this.total;
     }
 
     public void setTotal(BigDecimal total) {
@@ -49,11 +49,11 @@ public class Payment {
     }
 
     public LocalDate getPaymentDate() {
-        return paymentDate;
+        return this.paymentDate;
     }
 
     public PaymentMethod getMethod() {
-        return method;
+        return this.method;
     }
 
     public void setMethod(PaymentMethod method) {
@@ -61,7 +61,7 @@ public class Payment {
     }
 
     public PaymentStatus getStatus() {
-        return status;
+        return this.status;
     }
 
     public void setStatus(PaymentStatus status) {
