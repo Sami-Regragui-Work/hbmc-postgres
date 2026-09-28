@@ -2,6 +2,9 @@ package org.hbmc;
 
 import org.hbmc.config.DatabaseInitializer;
 import org.hbmc.db.DatabaseConnection;
+import org.hbmc.dto.AvailableRoomDTO;
+import org.hbmc.dto.ReservationSummaryDTO;
+import org.hbmc.dto.RoomSearchCriteria;
 import org.hbmc.exception.AuthenticationException;
 import org.hbmc.exception.InvalidReservationException;
 import org.hbmc.exception.ReservationAlreadyCancelledException;
@@ -9,7 +12,10 @@ import org.hbmc.exception.ReservationNotFoundException;
 import org.hbmc.exception.RoomCapacityExceededException;
 import org.hbmc.exception.RoomNotAvailableException;
 import org.hbmc.exception.UnauthorizedReservationAccessException;
+import org.hbmc.model.CanceledReservation;
 import org.hbmc.model.Client;
+import org.hbmc.model.Invoice;
+import org.hbmc.model.Payment;
 import org.hbmc.model.Reservation;
 import org.hbmc.model.Room;
 import org.hbmc.model.User;
@@ -38,12 +44,16 @@ import org.hbmc.service.ReportService;
 import org.hbmc.service.ReservationService;
 import org.hbmc.service.RoomService;
 import org.hbmc.util.InputUtils;
+import org.hbmc.util.ValidationUtils;
 
 import java.math.BigDecimal;
 import java.sql.Connection;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Map;
 import java.util.Scanner;
+import java.util.function.Predicate;
 
 public class Main {
 
@@ -130,10 +140,10 @@ public class Main {
 
     private static void handleRegister() {
         try {
-            String fullName = Main.input.readNonEmptyLine("Full name: ");
-            String email = Main.input.readNonEmptyLine("Email: ");
-            String password = Main.input.readNonEmptyLine("Password: ");
-            String phone = Main.input.readNonEmptyLine("Phone: ");
+            String fullName = Main.promptValid("Full name: ", ValidationUtils::isValidFullName, "Please enter a full name.");
+            String email = Main.promptValid("Email: ", ValidationUtils::isValidEmail, "Please enter a valid email.");
+            String password = Main.promptValid("Password (min 6 chars): ", ValidationUtils::isValidPassword, "Password must be at least 6 characters.");
+            String phone = Main.promptValid("Phone: ", ValidationUtils::isValidPhone, "Please enter a valid phone number.");
 
             Client newClient = new Client(fullName, email, null, null, phone);
             Main.currentUser = Main.authService.register(newClient, password);
@@ -173,7 +183,7 @@ public class Main {
                 case 3 -> Main.listMyReservations(client);
                 case 4 -> Main.updateReservationFlow(client);
                 case 5 -> Main.cancelReservationFlow(client);
-                case 6 -> Main.viewInvoiceFlow();
+                case 6 -> Main.viewInvoiceFlow(client);
                 case 0 -> loggedIn = false;
                 default -> System.out.println("Invalid option.");
             }
@@ -184,16 +194,60 @@ public class Main {
         LocalDate checkIn = Main.input.readDate("Check-in date (YYYY-MM-DD): ");
         LocalDate checkOut = Main.input.readDate("Check-out date (YYYY-MM-DD): ");
 
-        List<Room> rooms = Main.roomService.findAvailableRooms(checkIn, checkOut);
+        List<Room> rooms;
+        try {
+            rooms = Main.roomService.findAvailableRooms(checkIn, checkOut);
+        } catch (IllegalArgumentException e) {
+            System.out.println("Search failed: " + e.getMessage());
+            return;
+        }
         if (rooms.isEmpty()) {
             System.out.println("No rooms available for those dates.");
             return;
         }
-        for (Room room : rooms) {
-            BigDecimal quote = Main.pricingService.quotePrice(room, checkIn, checkOut);
-            System.out.printf("Room %s | %s | capacity %d | estimated total: %s%n",
-                    room.getRoomNumber(), room.getType(), room.getCapacity(), quote);
+
+        RoomSearchCriteria criteria = Main.roomSearchCriteria(checkIn, checkOut);
+
+        List<AvailableRoomDTO> matches = rooms.stream()
+                .filter(room -> Main.matchesCriteria(room, criteria))
+                .map(room -> Main.pricingService.quoteForRoom(room, criteria.getCheckIn(), criteria.getCheckOut()))
+                .toList();
+
+        if (matches.isEmpty()) {
+            System.out.println("No rooms match the given filters.");
+            return;
         }
+        System.out.println("Available rooms (estimated total, HT):");
+        for (AvailableRoomDTO match : matches) {
+            System.out.printf("  [%d] Room %s | %s | capacity %d | estimated total: %s%n",
+                    match.getRoomId(), match.getRoomNumber(), match.getType(),
+                    match.getCapacity(), match.getEstimatedTotalPrice());
+        }
+    }
+
+    private static RoomSearchCriteria roomSearchCriteria(LocalDate checkIn, LocalDate checkOut) {
+        RoomSearchCriteria criteria = new RoomSearchCriteria(checkIn, checkOut);
+        System.out.println("Filters: 0. no filter  1. room type  2. min capacity  3. max price per night");
+        int filterChoice = Main.input.readInt("Choose a filter (0-3): ");
+        switch (filterChoice) {
+            case 1 -> criteria.setType(Main.readRoomType());
+            case 2 -> criteria.setMinCapacity(Main.input.readInt("Minimum capacity: "));
+            case 3 -> criteria.setMaxPricePerNight(Main.input.readBigDecimal("Maximum price per night: "));
+            case 0 -> System.out.println("No filter applied.");
+            default -> System.out.println("Unknown filter, applying none.");
+        }
+        return criteria;
+    }
+
+    private static boolean matchesCriteria(Room room, RoomSearchCriteria criteria) {
+        if (criteria.getType() != null && room.getType() != criteria.getType()) {
+            return false;
+        }
+        if (criteria.getMinCapacity() != null && room.getCapacity() < criteria.getMinCapacity()) {
+            return false;
+        }
+        return criteria.getMaxPricePerNight() == null
+                || room.getPricePerNight().compareTo(criteria.getMaxPricePerNight()) <= 0;
     }
 
     private static void bookRoom(Client client) {
@@ -212,27 +266,38 @@ public class Main {
             return;
         }
 
-        System.out.println("Payment method: 1. CREDIT_CARD  2. CASH");
-        int methodChoice = Main.input.readInt("Choose: ");
-        PaymentMethod method = methodChoice == 1 ? PaymentMethod.CREDIT_CARD : PaymentMethod.CASH;
+        BigDecimal quote = Main.pricingService.quotePrice(room, checkIn, checkOut);
+        System.out.println("Estimated total (HT): " + quote + " for "
+                + ChronoUnit.DAYS.between(checkIn, checkOut) + " night(s)");
+
+        PaymentMethod method = Main.readPaymentMethod();
 
         try {
             Reservation reservation = Main.reservationService.bookReservation(client, room, checkIn, checkOut, guests, method);
             System.out.println("Booked! Reservation code: " + reservation.getReservationCode());
-        } catch (RoomNotAvailableException | RoomCapacityExceededException | InvalidReservationException e) {
+        } catch (RoomNotAvailableException | RoomCapacityExceededException | InvalidReservationException
+                 | IllegalArgumentException e) {
             System.out.println("Booking failed: " + e.getMessage());
         }
     }
 
     private static void listMyReservations(Client client) {
-        List<Reservation> reservations = Main.reservationService.getReservationsForClient(client);
-        if (reservations.isEmpty()) {
+        List<ReservationSummaryDTO> summaries = Main.reservationService.getReservationsForClient(client).stream()
+                .map(reservation -> new ReservationSummaryDTO(
+                        reservation,
+                        Main.paymentService.findByReservationId(reservation.getId())
+                                .map(Payment::getTotal)
+                                .orElse(BigDecimal.ZERO)))
+                .toList();
+
+        if (summaries.isEmpty()) {
             System.out.println("You have no reservations.");
             return;
         }
-        for (Reservation r : reservations) {
-            System.out.printf("[%s] Room %s | %s to %s | status: %s%n",
-                    r.getReservationCode(), r.getRoom().getRoomNumber(), r.getCheckIn(), r.getCheckOut(), r.getStatus());
+        for (ReservationSummaryDTO summary : summaries) {
+            System.out.printf("[%d] %s | Room %s | %s to %s | status: %s | total HT: %s%n",
+                    summary.getReservationId(), summary.getReservationCode(), summary.getRoomNumber(),
+                    summary.getCheckIn(), summary.getCheckOut(), summary.getStatus(), summary.getTotalPrice());
         }
     }
 
@@ -243,11 +308,12 @@ public class Main {
         int newGuests = Main.input.readInt("New number of guests: ");
 
         try {
-            Main.reservationService.updateReservation(client, code, newCheckIn, newCheckOut, newGuests);
-            System.out.println("Reservation updated.");
+            Reservation updated = Main.reservationService.updateReservation(client, code, newCheckIn, newCheckOut, newGuests);
+            System.out.println("Reservation updated: " + updated.getCheckIn() + " to " + updated.getCheckOut()
+                    + ", " + updated.getNumberOfGuests() + " guest(s).");
         } catch (ReservationNotFoundException | UnauthorizedReservationAccessException
                  | ReservationAlreadyCancelledException | RoomNotAvailableException
-                 | RoomCapacityExceededException | InvalidReservationException e) {
+                 | RoomCapacityExceededException | InvalidReservationException | IllegalArgumentException e) {
             System.out.println("Update failed: " + e.getMessage());
         }
     }
@@ -255,28 +321,44 @@ public class Main {
     private static void cancelReservationFlow(Client client) {
         String code = Main.input.readNonEmptyLine("Reservation code: ");
         try {
-            var canceled = Main.reservationService.cancelReservation(client, code);
-            System.out.println("Cancelled. Refund amount: " + canceled.getRefundAmount());
+            CanceledReservation canceled = Main.reservationService.cancelReservation(client, code);
+            System.out.println("Cancelled. Type: " + canceled.getType()
+                    + " | Refund amount: " + canceled.getRefundAmount());
         } catch (ReservationNotFoundException | UnauthorizedReservationAccessException
                  | ReservationAlreadyCancelledException | InvalidReservationException e) {
             System.out.println("Cancellation failed: " + e.getMessage());
         }
     }
 
-    private static void viewInvoiceFlow() {
-        int reservationId = Main.input.readInt("Reservation id: ");
-        var payment = Main.paymentService.findByReservationId(reservationId).orElse(null);
+    private static void viewInvoiceFlow(Client client) {
+        String code = Main.input.readNonEmptyLine("Reservation code: ");
+
+        Reservation reservation = Main.reservationService.getReservationsForClient(client).stream()
+                .filter(r -> r.getReservationCode().equals(code))
+                .findFirst()
+                .orElse(null);
+
+        if (reservation == null) {
+            System.out.println("No reservation found with code: " + code);
+            return;
+        }
+
+        Payment payment = Main.paymentService.findByReservationId(reservation.getId()).orElse(null);
         if (payment == null) {
             System.out.println("No payment found for that reservation.");
             return;
         }
-        var invoice = Main.invoiceService.findByPaymentId(payment.getId()).orElse(null);
+        Invoice invoice = Main.invoiceService.findByPaymentId(payment.getId()).orElse(null);
         if (invoice == null) {
             System.out.println("No invoice found for that payment.");
             return;
         }
+
+        System.out.println("--- Invoice for " + reservation.getReservationCode() + " ---");
+        System.out.println("Payment id: " + payment.getId() + " | method: " + payment.getMethod()
+                + " | status: " + payment.getStatus() + " | date: " + payment.getPaymentDate());
         System.out.println("HT: " + invoice.getOffTax());
-        System.out.println("TVA: " + invoice.getTax());
+        System.out.println("TVA (20%): " + invoice.getTax());
         System.out.println("TTC: " + invoice.getOffTax().add(invoice.getTax()));
     }
 
@@ -291,7 +373,8 @@ public class Main {
             System.out.println("2. Update room status");
             System.out.println("3. Update room price");
             System.out.println("4. List all rooms");
-            System.out.println("5. View KPI report");
+            System.out.println("5. View all reservations");
+            System.out.println("6. View KPI report");
             System.out.println("0. Logout");
             int choice = Main.input.readInt("Choose an option: ");
 
@@ -300,7 +383,8 @@ public class Main {
                 case 2 -> Main.updateRoomStatusFlow();
                 case 3 -> Main.updateRoomPriceFlow();
                 case 4 -> Main.listAllRooms();
-                case 5 -> Main.showReport();
+                case 5 -> Main.listAllReservations();
+                case 6 -> Main.showReport();
                 case 0 -> loggedIn = false;
                 default -> System.out.println("Invalid option.");
             }
@@ -309,19 +393,13 @@ public class Main {
 
     private static void createRoomFlow() {
         String roomNumber = Main.input.readNonEmptyLine("Room number: ");
-        System.out.println("Type: 1. SINGLE  2. DOUBLE  3. SUITE");
-        int typeChoice = Main.input.readInt("Choose: ");
-        RoomType type = switch (typeChoice) {
-            case 2 -> RoomType.DOUBLE;
-            case 3 -> RoomType.SUITE;
-            default -> RoomType.SINGLE;
-        };
+        RoomType type = Main.readRoomType();
         int capacity = Main.input.readInt("Capacity: ");
         BigDecimal price = Main.input.readBigDecimal("Price per night: ");
 
         try {
-            Main.roomService.createRoom(roomNumber, type, capacity, price);
-            System.out.println("Room created.");
+            Room room = Main.roomService.createRoom(roomNumber, type, capacity, price);
+            System.out.println("Room created with id " + room.getId() + ".");
         } catch (IllegalArgumentException e) {
             System.out.println("Failed: " + e.getMessage());
         }
@@ -355,6 +433,10 @@ public class Main {
 
     private static void listAllRooms() {
         List<Room> rooms = Main.roomService.findAllRooms();
+        if (rooms.isEmpty()) {
+            System.out.println("No rooms registered.");
+            return;
+        }
         for (Room room : rooms) {
             System.out.printf("[%d] %s | %s | capacity %d | %s/night | %s%n",
                     room.getId(), room.getRoomNumber(), room.getType(), room.getCapacity(),
@@ -362,11 +444,79 @@ public class Main {
         }
     }
 
+    private static void listAllReservations() {
+        try {
+            Main.authService.assertRole(Main.currentUser, "ADMIN");
+        } catch (AuthenticationException e) {
+            System.out.println(e.getMessage());
+            return;
+        }
+
+        List<Reservation> reservations = Main.reservationService.getAllReservations();
+        if (reservations.isEmpty()) {
+            System.out.println("No reservations yet.");
+            return;
+        }
+        for (Reservation reservation : reservations) {
+            System.out.printf("[%d] %s | %s | Room %s | %s to %s | %d guest(s) | status: %s%n",
+                    reservation.getId(), reservation.getReservationCode(),
+                    reservation.getClient().getFullName(), reservation.getRoom().getRoomNumber(),
+                    reservation.getCheckIn(), reservation.getCheckOut(),
+                    reservation.getNumberOfGuests(), reservation.getStatus());
+        }
+    }
+
     private static void showReport() {
+        try {
+            Main.authService.assertRole(Main.currentUser, "ADMIN");
+        } catch (AuthenticationException e) {
+            System.out.println(e.getMessage());
+            return;
+        }
+
+        System.out.println("--- KPI Report ---");
         System.out.println("Total revenue: " + Main.reportService.totalRevenue());
         System.out.println("Average booking value: " + Main.reportService.averageBookingValue());
         System.out.println("Occupancy rate: " + Main.reportService.occupancyRate() + "%");
         System.out.println("Total reservations: " + Main.reportService.totalReservationsCount());
         System.out.println("Cancelled reservations: " + Main.reportService.cancelledReservationsCount());
+
+        System.out.println("Most booked rooms:");
+        List<Map.Entry<Room, Long>> mostBooked = Main.reportService.mostBookedRooms(5);
+        if (mostBooked.isEmpty()) {
+            System.out.println("  (no reservations yet)");
+        }
+        for (Map.Entry<Room, Long> entry : mostBooked) {
+            System.out.printf("  Room %s (%s): %d booking(s)%n",
+                    entry.getKey().getRoomNumber(), entry.getKey().getType(), entry.getValue());
+        }
+    }
+
+    // ####################Shared input helpers
+
+    private static String promptValid(String prompt, Predicate<String> validator, String errorMessage) {
+        while (true) {
+            String value = Main.input.readNonEmptyLine(prompt);
+            if (validator.test(value)) {
+                return value;
+            }
+            System.out.println(errorMessage);
+        }
+    }
+
+    private static RoomType readRoomType() {
+        System.out.println("Type: 1. SINGLE  2. DOUBLE  3. SUITE");
+        int typeChoice = Main.input.readInt("Choose: ");
+        return switch (typeChoice) {
+            case 2 -> RoomType.DOUBLE;
+            case 3 -> RoomType.SUITE;
+            default -> RoomType.SINGLE;
+        };
+    }
+
+    private static PaymentMethod readPaymentMethod() {
+        System.out.println("Payment method: 1. CREDIT_CARD  2. CASH");
+        int methodChoice = Main.input.readInt("Choose: ");
+        return methodChoice == 2 ? PaymentMethod.CASH : PaymentMethod.CREDIT_CARD;
     }
 }
