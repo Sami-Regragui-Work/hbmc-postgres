@@ -2,6 +2,7 @@ package org.hbmc.service;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.hbmc.exception.AuthenticationException;
+import org.hbmc.exception.ResourceAlreadyExistsException;
 import org.hbmc.model.User;
 import org.hbmc.repository.UserRepository;
 
@@ -46,7 +47,7 @@ public class AuthService {
 
     public User register(User newUser, String plainPassword) {
         if (this.userRepository.existsByEmail(newUser.getEmail())) {
-            throw new IllegalArgumentException("Email already registered: " + newUser.getEmail());
+            throw new ResourceAlreadyExistsException("Email already registered: " + newUser.getEmail());
         }
         String salt = this.generateSalt();
         String hash = this.hashPassword(plainPassword, salt);

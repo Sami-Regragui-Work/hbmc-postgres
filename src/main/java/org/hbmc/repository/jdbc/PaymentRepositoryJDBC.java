@@ -31,6 +31,7 @@ public class PaymentRepositoryJDBC implements PaymentRepository {
             Payment payment = new Payment(
                     reservation,
                     rs.getBigDecimal("total"),
+                    rs.getDate("payment_date").toLocalDate(),
                     PaymentMethod.valueOf(rs.getString("method")),
                     PaymentStatus.valueOf(rs.getString("status"))
             );

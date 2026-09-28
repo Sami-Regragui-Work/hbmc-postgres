@@ -21,9 +21,13 @@ public class Payment {
     }
 
     public Payment(@NotNull Reservation reservation, BigDecimal total, PaymentMethod method, PaymentStatus status) {
+        this(reservation, total, LocalDate.now(), method, status);
+    }
+
+    public Payment(@NotNull Reservation reservation, BigDecimal total, LocalDate paymentDate, PaymentMethod method, PaymentStatus status) {
         this.reservation = Objects.requireNonNull(reservation, "Can't make a Payment without Reservation");
         this.total = total;
-        this.paymentDate = LocalDate.now();
+        this.paymentDate = paymentDate;
         this.method = method;
         this.status = status;
     }

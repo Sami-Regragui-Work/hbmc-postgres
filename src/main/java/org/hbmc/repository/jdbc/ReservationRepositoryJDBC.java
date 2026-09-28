@@ -47,11 +47,7 @@ public class ReservationRepositoryJDBC implements ReservationRepository {
                     rs.getInt("number_of_guests")
             );
             reservation.setId(rs.getInt("id"));
-
-            String status = rs.getString("status");
-            if (ReservationStatus.COMPLETED.name().equals(status)) {
-                reservation.markAsCompleted();
-            }
+            reservation.setStatus(ReservationStatus.valueOf(rs.getString("status")));
 
             return reservation;
         };

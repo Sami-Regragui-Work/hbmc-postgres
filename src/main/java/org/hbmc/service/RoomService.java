@@ -1,6 +1,9 @@
 package org.hbmc.service;
 
+import org.hbmc.exception.InvalidInputException;
+import org.hbmc.exception.ResourceAlreadyExistsException;
 import org.hbmc.exception.RoomNotAvailableException;
+import org.hbmc.exception.RoomNotFoundException;
 import org.hbmc.model.Room;
 import org.hbmc.model.enums.RoomStatus;
 import org.hbmc.repository.RoomRepository;
@@ -19,7 +22,7 @@ public class RoomService {
 
     public Room createRoom(String roomNumber, org.hbmc.model.enums.RoomType type, int capacity, java.math.BigDecimal pricePerNight) {
         if (this.roomRepository.findByRoomNumber(roomNumber).isPresent()) {
-            throw new IllegalArgumentException("Room number already exists: " + roomNumber);
+            throw new ResourceAlreadyExistsException("Room number already exists: " + roomNumber);
         }
         Room room = new Room(roomNumber, type, capacity, pricePerNight);
         return this.roomRepository.save(room);
@@ -27,14 +30,14 @@ public class RoomService {
 
     public Room updateRoomStatus(int roomId, RoomStatus newStatus) {
         Room room = this.roomRepository.findById(roomId)
-                .orElseThrow(() -> new IllegalArgumentException("Room not found: " + roomId));
+                .orElseThrow(() -> new RoomNotFoundException("Room not found: " + roomId));
         room.setStatus(newStatus);
         return this.roomRepository.update(room);
     }
 
     public Room updateRoomPrice(int roomId, java.math.BigDecimal newPrice) {
         Room room = this.roomRepository.findById(roomId)
-                .orElseThrow(() -> new IllegalArgumentException("Room not found: " + roomId));
+                .orElseThrow(() -> new RoomNotFoundException("Room not found: " + roomId));
         room.setPricePerNight(newPrice);
         return this.roomRepository.update(room);
     }
@@ -49,14 +52,14 @@ public class RoomService {
 
     public List<Room> findAvailableRooms(LocalDate checkIn, LocalDate checkOut) {
         if (!checkIn.isBefore(checkOut)) {
-            throw new IllegalArgumentException("Check-in date must be before check-out date");
+            throw new InvalidInputException("Check-in date must be before check-out date");
         }
         return this.roomRepository.findAvailableRooms(checkIn, checkOut);
     }
 
     public boolean isRoomAvailable(int roomId, LocalDate checkIn, LocalDate checkOut) {
         if (!checkIn.isBefore(checkOut)) {
-            throw new IllegalArgumentException("Check-in date must be before check-out date");
+            throw new InvalidInputException("Check-in date must be before check-out date");
         }
         return !this.roomRepository.hasOverlap(roomId, checkIn, checkOut);
     }

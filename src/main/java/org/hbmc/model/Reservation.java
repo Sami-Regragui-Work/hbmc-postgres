@@ -98,6 +98,10 @@ public class Reservation {
         return this.status;
     }
 
+    public void setStatus(ReservationStatus status) {
+        this.status = status;
+    }
+
     public void markAsCompleted() {
         this.status = ReservationStatus.COMPLETED;
     }

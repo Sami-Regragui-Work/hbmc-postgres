@@ -6,11 +6,14 @@ import org.hbmc.dto.AvailableRoomDTO;
 import org.hbmc.dto.ReservationSummaryDTO;
 import org.hbmc.dto.RoomSearchCriteria;
 import org.hbmc.exception.AuthenticationException;
+import org.hbmc.exception.InvalidInputException;
 import org.hbmc.exception.InvalidReservationException;
 import org.hbmc.exception.ReservationAlreadyCancelledException;
 import org.hbmc.exception.ReservationNotFoundException;
+import org.hbmc.exception.ResourceAlreadyExistsException;
 import org.hbmc.exception.RoomCapacityExceededException;
 import org.hbmc.exception.RoomNotAvailableException;
+import org.hbmc.exception.RoomNotFoundException;
 import org.hbmc.exception.UnauthorizedReservationAccessException;
 import org.hbmc.model.CanceledReservation;
 import org.hbmc.model.Client;
@@ -148,7 +151,7 @@ public class Main {
             Client newClient = new Client(fullName, email, null, null, phone);
             Main.currentUser = Main.authService.register(newClient, password);
             System.out.println("Registered successfully. Welcome, " + Main.currentUser.getFullName() + "!");
-        } catch (IllegalArgumentException e) {
+        } catch (ResourceAlreadyExistsException e) {
             System.out.println("Registration failed: " + e.getMessage());
         }
     }
@@ -197,7 +200,7 @@ public class Main {
         List<Room> rooms;
         try {
             rooms = Main.roomService.findAvailableRooms(checkIn, checkOut);
-        } catch (IllegalArgumentException e) {
+        } catch (InvalidInputException e) {
             System.out.println("Search failed: " + e.getMessage());
             return;
         }
@@ -276,7 +279,7 @@ public class Main {
             Reservation reservation = Main.reservationService.bookReservation(client, room, checkIn, checkOut, guests, method);
             System.out.println("Booked! Reservation code: " + reservation.getReservationCode());
         } catch (RoomNotAvailableException | RoomCapacityExceededException | InvalidReservationException
-                 | IllegalArgumentException e) {
+                 | InvalidInputException e) {
             System.out.println("Booking failed: " + e.getMessage());
         }
     }
@@ -313,7 +316,7 @@ public class Main {
                     + ", " + updated.getNumberOfGuests() + " guest(s).");
         } catch (ReservationNotFoundException | UnauthorizedReservationAccessException
                  | ReservationAlreadyCancelledException | RoomNotAvailableException
-                 | RoomCapacityExceededException | InvalidReservationException | IllegalArgumentException e) {
+                 | RoomCapacityExceededException | InvalidReservationException | InvalidInputException e) {
             System.out.println("Update failed: " + e.getMessage());
         }
     }
@@ -400,7 +403,7 @@ public class Main {
         try {
             Room room = Main.roomService.createRoom(roomNumber, type, capacity, price);
             System.out.println("Room created with id " + room.getId() + ".");
-        } catch (IllegalArgumentException e) {
+        } catch (ResourceAlreadyExistsException e) {
             System.out.println("Failed: " + e.getMessage());
         }
     }
@@ -414,7 +417,7 @@ public class Main {
         try {
             Main.roomService.updateRoomStatus(roomId, status);
             System.out.println("Room status updated.");
-        } catch (IllegalArgumentException e) {
+        } catch (RoomNotFoundException e) {
             System.out.println("Failed: " + e.getMessage());
         }
     }
@@ -426,7 +429,7 @@ public class Main {
         try {
             Main.roomService.updateRoomPrice(roomId, newPrice);
             System.out.println("Room price updated.");
-        } catch (IllegalArgumentException e) {
+        } catch (RoomNotFoundException e) {
             System.out.println("Failed: " + e.getMessage());
         }
     }

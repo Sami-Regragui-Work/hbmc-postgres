@@ -1,5 +1,7 @@
 package org.hbmc.util;
 
+import org.hbmc.exception.InvalidInputException;
+
 import java.util.regex.Pattern;
 
 public class ValidationUtils {
@@ -30,6 +32,6 @@ public class ValidationUtils {
     }
 
     public static void validatePositiveGuestCount(int numberOfGuests) {
-        if (numberOfGuests <= 0) throw new IllegalArgumentException("Number of guests must be positive");
+        if (numberOfGuests <= 0) throw new InvalidInputException("Number of guests must be positive");
     }
 }

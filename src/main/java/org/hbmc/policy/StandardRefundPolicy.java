@@ -10,17 +10,13 @@ public class StandardRefundPolicy implements RefundPolicy {
 
     @Override
     public CancellationType determineCancellationType(LocalDate checkIn, LocalDate cancellationDate) {
-        long hoursUntilCheckIn = ChronoUnit.HOURS.between(
-                cancellationDate.atStartOfDay(),
-                checkIn.atStartOfDay()
-        );
         long daysUntilCheckIn = ChronoUnit.DAYS.between(cancellationDate, checkIn);
 
         if (daysUntilCheckIn > 14) {
             return CancellationType.FULL_REFUND;
-        } else if (daysUntilCheckIn >= 7) {
+        } else if (daysUntilCheckIn > 7) {
             return CancellationType.PARTIAL_7_14_REFUND_70;
-        } else if (hoursUntilCheckIn >= 48) {
+        } else if (daysUntilCheckIn > 2) {
             return CancellationType.PARTIAL_2_7_REFUND_50;
         } else {
             return CancellationType.NO_REFUND;
